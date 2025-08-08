@@ -176,17 +176,16 @@ def check_attheraces_connectivity(url="https://www.attheraces.com/"):
     print("\n🌐 Performing Environmental Check...")
     print(f"-> Pinging: {url}")
     try:
-        # Use a HEAD request for efficiency as we only need the status, not the content.
-        response = requests.head(url, headers={'User-Agent': 'Mozilla/5.0'}, verify=False, timeout=10)
+        # Use a GET request with streaming to be more robust and efficient.
+        # This is less likely to be blocked than a HEAD request.
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, verify=False, timeout=10, stream=True)
         response.raise_for_status()
-        if response.status_code == 200:
-            print("   ✅ Success! Network is UNRESTRICTED.")
-            return True
-    except requests.exceptions.RequestException:
-        pass  # We expect this to fail in a restricted environment.
-
-    print("   ⚠️ AtTheRaces is unreachable. Network is RESTRICTED.")
-    return False
+        print(f"   ✅ Success! Network is UNRESTRICTED (Status: {response.status_code}).")
+        return True
+    except requests.exceptions.RequestException as e:
+        # Provide specific error feedback
+        print(f"   ❌ AtTheRaces is unreachable. Network is RESTRICTED. Reason: {e}")
+        return False
 
 # ==============================================================================
 # MODE A: UNRESTRICTED WORKFLOW
@@ -237,12 +236,19 @@ def fetch_atr_odds_data(regions: list[str]) -> dict:
         try:
             response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
             response.raise_for_status()
+            if not response.text:
+                print(f"   ⚠️  Warning: Received an empty response for {region}.")
+                continue
         except requests.exceptions.RequestException as e:
-            print(f"   ⚠️ Could not fetch data for {region}: {e}")
+            print(f"   ❌ ERROR: Could not fetch data for {region}. Reason: {e}")
             continue
 
         soup = BeautifulSoup(response.text, 'html.parser')
         race_captions = soup.find_all('caption', string=re.compile(r"^\d{2}:\d{2}"))
+
+        if not race_captions:
+            print(f"   ⚠️  Warning: Could not find any race data for {region}. The page content may be empty or the structure may have changed.")
+            continue
 
         for caption in race_captions:
             race_name_full = caption.get_text(strip=True)
@@ -591,13 +597,22 @@ def run_mode_B(master_race_list: list[dict]):
     for race in small_field_races:
         race['rs_link'] = None  # Default to no link
         if race['country'].upper() in ['UK', 'IRE']:
-            date_str_iso = race.get('date_iso')
-            if not date_str_iso:
+            date_str_ddmmyyyy = race.get('date_iso')
+            if not date_str_ddmmyyyy:
                 print(f"   -> {race['course']} @ {race['time']}: Could not find date_iso in race data.")
                 enriched_races.append(race)
                 continue
 
-            rs_link = find_rs_link(race['course'], date_str_iso, rs_lookup_table)
+            # Convert date from DD-MM-YYYY to YYYY-MM-DD for matching
+            try:
+                date_obj = datetime.strptime(date_str_ddmmyyyy, '%d-%m-%Y')
+                date_str_yyyymmdd = date_obj.strftime('%Y-%m-%d')
+            except (ValueError, TypeError):
+                print(f"   -> {race['course']} @ {race['time']}: Could not parse date '{date_str_ddmmyyyy}'.")
+                enriched_races.append(race)
+                continue
+
+            rs_link = find_rs_link(race['course'], date_str_yyyymmdd, rs_lookup_table)
             if rs_link:
                 race['rs_link'] = rs_link
                 print(f"   -> {race['course']} @ {race['time']}: R&S Link FOUND")

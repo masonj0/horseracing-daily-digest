@@ -13,11 +13,12 @@ import os
 import re
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse, urljoin
 
 # --- Third-Party Libraries ---
 import requests
+import pytz
 from bs4 import BeautifulSoup
 
 # --- Suppress SSL Warnings ---
@@ -47,14 +48,41 @@ def fetch_page(url: str):
         print(f"   ❌ Failed to fetch page: {e}")
         return None
 
+def sort_and_limit_races(races: list[dict], limit: int = 20) -> list[dict]:
+    """
+    Filters for upcoming races, sorts them chronologically, and limits the list.
+    Assumes that the `datetime_utc` key has already been calculated.
+    """
+    print(f"\n⏳ Filtering for upcoming races, sorting, and limiting...")
+    now_utc = datetime.now(pytz.utc)
+
+    # Filter for races that have a valid UTC datetime and are in the future
+    future_races = [
+        race for race in races
+        if race.get('datetime_utc') and race['datetime_utc'] > now_utc
+    ]
+
+    # Sort the filtered races by their UTC datetime
+    future_races.sort(key=lambda r: r['datetime_utc'])
+
+    # Limit the number of races
+    limited_races = future_races[:limit]
+
+    print(f"   -> Found {len(future_races)} upcoming races.")
+    print(f"   -> Limiting to a maximum of {limit} races.")
+    print(f"✅ Filtering and limiting complete. {len(limited_races)} races remain.")
+
+    return limited_races
+
 # ==============================================================================
 # STEP 1: UNIVERSAL SCAN
 # ==============================================================================
 
 def universal_sky_sports_scan(html_content: str, base_url: str):
     """
-    Scrapes the Sky Sports racecards page for a master list of all races.
-    Extracts Course, Race Time, Field Size, and Race URL for every race.
+    (Corrected Final Version) Scrapes Sky Sports racecards. This version is
+    based on the correct HTML structure and uses the ground truth that all
+    times are presented in UK time.
     """
     if not html_content:
         print("❌ HTML content is empty. Cannot perform the scan.")
@@ -64,62 +92,75 @@ def universal_sky_sports_scan(html_content: str, base_url: str):
     soup = BeautifulSoup(html_content, 'html.parser')
     all_races = []
 
-    # Helper to extract info from a racecard URL, e.g., /racing/racecards/some-track/2024-08-08
-    def parse_sky_url_for_track(url):
+    # Ground truth: All times on Sky Sports are UK time.
+    source_tz = pytz.timezone('Europe/London')
+
+    def get_country_code(meeting_title: str) -> str:
+        """Parses a meeting title (e.g., 'Tipperary (IRE)') to get a country code for display."""
+        match = re.search(r'\((\w+)\)$', meeting_title)
+        return match.group(1).upper() if match else "UK"
+
+    def parse_sky_url_for_info(url):
+        """Extract track name and date from Sky Sports URL."""
         try:
             path_parts = urlparse(url).path.strip('/').split('/')
             if 'racecards' in path_parts:
                 idx = path_parts.index('racecards')
                 track = path_parts[idx + 1].replace('-', ' ').title()
-                return track
+                date = path_parts[idx + 2] if len(path_parts) > idx + 2 else None
+                return track, date
         except (ValueError, IndexError):
-            return None
-        return None
+            return None, None
+        return None, None
 
-    # Meetings are grouped by country, so we find all meeting containers
-    meeting_containers = soup.find_all('div', class_='sdc-site-racing-meetings-group')
+    # Each meeting is wrapped in a "concertina-block"
+    for meeting_block in soup.find_all('div', class_='sdc-site-concertina-block'):
+        title_tag = meeting_block.find('h3', class_='sdc-site-concertina-block__title')
+        if not title_tag:
+            continue
 
-    for meeting_container in meeting_containers:
-        # Each individual race is an 'event'
-        event_containers = meeting_container.find_all('div', class_='sdc-site-racing-meetings__event')
+        meeting_title = title_tag.get_text(strip=True)
+        country_code = get_country_code(meeting_title)
 
-        for container in event_containers:
+        # Find all race events within this meeting's block
+        events_container = meeting_block.find('div', class_='sdc-site-racing-meetings__events')
+        if not events_container:
+            continue
+
+        for container in events_container.find_all('div', class_='sdc-site-racing-meetings__event'):
             racecard_tag = container.find('a', class_='sdc-site-racing-meetings__event-link')
             race_details_span = container.find('span', class_='sdc-site-racing-meetings__event-details')
 
             if not racecard_tag or not race_details_span:
                 continue
 
-            # Extract Field Size
-            details_text = race_details_span.get_text(strip=True)
-            runner_count_match = re.search(r'(\d+)\s+runners?', details_text, re.IGNORECASE)
-            if not runner_count_match:
-                continue
-            field_size = int(runner_count_match.group(1))
+            runner_match = re.search(r'(\d+)\s+runners?', race_details_span.get_text(strip=True), re.IGNORECASE)
+            field_size = int(runner_match.group(1)) if runner_match else 0
 
-            # Extract Race URL and Course Name
             race_url = urljoin(base_url, racecard_tag.get('href'))
-            course = parse_sky_url_for_track(race_url)
-            if not course:
+            course, date_str = parse_sky_url_for_info(race_url)
+            if not course or not date_str:
                 continue
 
-            # Extract Race Time from the name span, e.g., "13:50"
-            race_name_span = container.find('span', class_='sdc-site-racing-meetings__event-name')
-            time_match = re.search(r'(\d{1,2}:\d{2})', race_name_span.get_text(strip=True))
-            race_time = time_match.group(1) if time_match else "N/A"
+            time_span = container.find('span', class_='sdc-site-racing-meetings__event-time')
+            race_time = time_span.get_text(strip=True) if time_span else "N/A"
 
-            # Also get the country for later filtering (UK/Ireland)
-            country_header = meeting_container.find('h2', class_='sdc-site-racing-meetings__title')
-            country = country_header.get_text(strip=True) if country_header else "Unknown"
+            datetime_utc = None
+            if race_time != "N/A" and date_str:
+                try:
+                    # The date format from the URL is DD-MM-YYYY
+                    naive_dt = datetime.strptime(f"{date_str} {race_time}", '%d-%m-%Y %H:%M')
+                    # Localize all times to London, then convert to UTC
+                    datetime_utc = source_tz.localize(naive_dt).astimezone(pytz.utc)
+                except (ValueError, KeyError):
+                    pass
 
             all_races.append({
-                'course': course,
-                'time': race_time,
-                'field_size': field_size,
-                'race_url': race_url,
-                'country': country,
+                'course': course, 'time': race_time, 'field_size': field_size,
+                'race_url': race_url, 'country': country_code, 'date_iso': date_str,
+                'datetime_utc': datetime_utc
             })
-            print(f"   -> Found: {course} ({country}) at {race_time} with {field_size} runners.")
+            print(f"   -> Found: {course} ({country_code}) at {race_time} [Europe/London]")
 
     print(f"✅ Universal Scan complete. Found {len(all_races)} races in total.")
     return all_races
@@ -326,9 +367,16 @@ def run_mode_A(master_race_list: list[dict]):
         return
 
     # 3. Correlate and apply final filter
-    print("\n🔍 Analyzing races against the final criteria (Fav >= 1/1, 2nd Fav >= 3/1)...")
+    print("\n🔍 Analyzing races against the final criteria (in next 30 mins, Fav >= 1/1, 2nd Fav >= 3/1)...")
+    now_utc = datetime.now(pytz.utc)
+    thirty_mins_from_now = now_utc + timedelta(minutes=30)
+
     perfect_tips = []
     for race in small_field_races:
+        # Time-based filter: race must be upcoming and start in the next 30 mins
+        if not (race['datetime_utc'] and now_utc < race['datetime_utc'] < thirty_mins_from_now):
+            continue
+
         # Use normalized course name for matching
         key = (normalize_track_name(race['course']), race['time'])
 
@@ -340,7 +388,7 @@ def run_mode_A(master_race_list: list[dict]):
             if not fav or not sec_fav:
                 continue
 
-            # The ultimate filter criteria
+            # The ultimate filter criteria for odds
             fav_odds_ok = fav['odds_float'] >= 1.0
             sec_fav_odds_ok = sec_fav['odds_float'] >= 3.0
 
@@ -350,6 +398,9 @@ def run_mode_A(master_race_list: list[dict]):
                 race['second_favorite'] = sec_fav
                 perfect_tips.append(race)
                 print(f"   ✅ MATCH: {race['course']} {race['time']}")
+
+    # Sort the final list chronologically before generating the report
+    perfect_tips.sort(key=lambda r: r['datetime_utc'])
 
     # 4. Generate and save the report
     generate_mode_A_report(perfect_tips)
@@ -476,9 +527,19 @@ def generate_mode_B_report(races: list[dict]):
         for race in races:
             races_by_course.setdefault(race['course'], []).append(race)
 
-        for course, course_races in sorted(races_by_course.items()):
+        # Preserve original race order by iterating through the original list
+        # to determine the order of courses.
+        course_order = []
+        seen_courses = set()
+        for race in races:
+            if race['course'] not in seen_courses:
+                course_order.append(race['course'])
+                seen_courses.add(race['course'])
+
+        for course in course_order:
+            course_races = races_by_course[course]
             html_body += f'<div class="course-group"><div class="course-header">{course}</div>'
-            for race in sorted(course_races, key=lambda r: r['time']):
+            for race in course_races: # Races are already sorted
                 html_body += f'<div class="race-entry"><p class="race-details">Race at {race["time"]} ({race["field_size"]} runners)</p><div class="race-links">'
                 html_body += f'<a href="{race["race_url"]}" target="_blank" class="sky-link">Sky Sports Racecard</a>'
 
@@ -528,13 +589,11 @@ def run_mode_B(master_race_list: list[dict]):
     print("\n🔗 Matching Sky Sports races with R&S links (for UK & Ireland)...")
     enriched_races = []
     for race in small_field_races:
-        race['rs_link'] = None # Default to no link
-        if race['country'].lower() in ['uk', 'ireland', 'united kingdom', 'ire']:
-            date_str_iso = None
-            try:
-                date_str_iso = re.search(r'/(\d{4}-\d{2}-\d{2})', race['race_url']).group(1)
-            except AttributeError:
-                print(f"   -> {race['course']} @ {race['time']}: Could not parse date from URL.")
+        race['rs_link'] = None  # Default to no link
+        if race['country'].upper() in ['UK', 'IRE']:
+            date_str_iso = race.get('date_iso')
+            if not date_str_iso:
+                print(f"   -> {race['course']} @ {race['time']}: Could not find date_iso in race data.")
                 enriched_races.append(race)
                 continue
 
@@ -547,7 +606,10 @@ def run_mode_B(master_race_list: list[dict]):
 
         enriched_races.append(race)
 
-    # 4. Generate and save the report
+    # 4. Sort, filter, and limit the list
+    enriched_races = sort_and_limit_races(enriched_races)
+
+    # 5. Generate and save the report
     generate_mode_B_report(enriched_races)
 
 # ==============================================================================

@@ -165,6 +165,105 @@ def universal_sky_sports_scan(html_content: str, base_url: str):
     print(f"✅ Universal Scan complete. Found {len(all_races)} races in total.")
     return all_races
 
+
+def universal_sporting_life_scan(html_content: str, base_url: str):
+    """
+    Scrapes Sporting Life racecards.
+    This version is based on the HTML structure of the racecards page.
+    """
+    if not html_content:
+        print("❌ HTML content is empty. Cannot perform the scan.")
+        return []
+
+    print("\n🔍 Starting Universal Scan of Sporting Life...")
+    soup = BeautifulSoup(html_content, 'html.parser')
+    all_races = []
+    processed_races = set() # To avoid processing the same race multiple times
+    source_tz = pytz.timezone('Europe/London')
+
+    race_links = soup.find_all('a', href=re.compile(r'/racing/racecards/....-..-../.*/racecard/'))
+
+    for link in race_links:
+        race_url = urljoin(base_url, link.get('href'))
+
+        # Extract info from the URL
+        try:
+            path_parts = urlparse(race_url).path.strip('/').split('/')
+            if 'racecard' in path_parts:
+                idx = path_parts.index('racecards')
+                date_from_url = path_parts[idx + 1]
+                course = path_parts[idx + 2].replace('-', ' ').title()
+            else:
+                continue
+        except (ValueError, IndexError):
+            continue
+
+        # Extract info from the link's surrounding text
+        parent_div = link.parent
+        if not parent_div:
+            print(f"   -> WARNING: Could not find parent for link: {race_url}")
+            continue
+
+        race_time = None
+        time_span = parent_div.find_previous_sibling('span')
+        if time_span:
+            time_match = re.search(r'(\d{2}:\d{2})', time_span.text)
+            if time_match:
+                race_time = time_match.group(1)
+
+        if not race_time:
+            # Fallback to grandparent text
+            grandparent_div = parent_div.parent
+            if grandparent_div:
+                time_match = re.search(r'(\d{2}:\d{2})', grandparent_div.text)
+                if time_match:
+                    race_time = time_match.group(1)
+
+        if not race_time:
+            print(f"   -> WARNING: Could not find time for race: {race_url}")
+            continue
+
+        key = (normalize_track_name(course), race_time)
+        if key in processed_races:
+            continue
+        processed_races.add(key)
+
+        details_text = link.get_text(strip=True)
+        runner_match = re.search(r'(\d+)\s+Runners', details_text, re.IGNORECASE)
+        field_size = int(runner_match.group(1)) if runner_match else 0
+
+        # This is a very rough way to get the country.
+        # A better way would be to have a mapping of courses to countries.
+        country_code = "UK" # Default to UK
+        if course.lower() in ['deauville', 'argentan', 'enghien']:
+            country_code = "FR"
+        if course.lower() in ['curragh', 'kilbeggan']:
+            country_code = "IRE"
+        if course.lower() in ['turffontein']:
+            country_code = "SAF"
+
+
+        datetime_utc = None
+        try:
+            # The date format from the URL is YYYY-MM-DD
+            naive_dt = datetime.strptime(f"{date_from_url} {race_time}", '%Y-%m-%d %H:%M')
+            datetime_utc = source_tz.localize(naive_dt).astimezone(pytz.utc)
+            date_iso_str = naive_dt.strftime('%d-%m-%Y')
+        except (ValueError, KeyError):
+            print(f"   -> WARNING: Could not parse date/time for race: {race_url}")
+            continue
+
+        all_races.append({
+            'course': course, 'time': race_time, 'field_size': field_size,
+            'race_url': race_url, 'country': country_code, 'date_iso': date_iso_str,
+            'datetime_utc': datetime_utc
+        })
+        print(f"   -> Found: {course} ({country_code}) at {race_time} [Europe/London]")
+
+
+    print(f"✅ Sporting Life Scan complete. Found {len(all_races)} races in total.")
+    return all_races
+
 # ==============================================================================
 # STEP 2: ENVIRONMENTAL CHECK
 # ==============================================================================
@@ -322,7 +421,7 @@ def generate_mode_A_report(races: list[dict]):
     html_body = ""
 
     if not races:
-        html_body += "<p>No races met the specified criteria of Field Size < 7, Favorite >= 1/1, and 2nd Favorite >= 3/1.</p>"
+        html_body += "<p>No races met the specified criteria of Field Size between 3 and 6, Favorite >= 1/1, and 2nd Favorite >= 3/1.</p>"
     else:
         html_body += f"<p>Found {len(races)} races that meet all analytical criteria.</p>"
         for race in races:
@@ -354,9 +453,9 @@ def run_mode_A(master_race_list: list[dict]):
     """
     print("\n-- Running Mode A: Unrestricted Workflow --")
 
-    # 1. Filter master list for small fields
-    small_field_races = [r for r in master_race_list if r['field_size'] < 7]
-    print(f"Found {len(small_field_races)} races with fewer than 7 runners.")
+    # 1. Filter master list for small fields (3-6 runners)
+    small_field_races = [r for r in master_race_list if 3 <= r.get('field_size', 0) <= 6]
+    print(f"Found {len(small_field_races)} races with 3 to 6 runners.")
 
     if not small_field_races:
         print("No small-field races to analyze.")
@@ -527,7 +626,7 @@ def generate_mode_B_report(races: list[dict]):
     html_body = ""
 
     if not races:
-        html_body += "<p>No races with fewer than 7 runners were found on Sky Sports today.</p>"
+        html_body += "<p>No races with 3 to 6 runners were found on any of the tracked sources today.</p>"
     else:
         races_by_course = {}
         for race in races:
@@ -574,9 +673,9 @@ def run_mode_B(master_race_list: list[dict]):
     """Executes the full workflow for restricted mode."""
     print("\n-- Running Mode B: Restricted Workflow --")
 
-    # 1. Filter master list for small fields
-    small_field_races = [r for r in master_race_list if r['field_size'] < 7]
-    print(f"Found {len(small_field_races)} races with fewer than 7 runners.")
+    # 1. Filter master list for small fields (3-6 runners)
+    small_field_races = [r for r in master_race_list if 3 <= r.get('field_size', 0) <= 6]
+    print(f"Found {len(small_field_races)} races with 3 to 6 runners.")
 
     if not small_field_races:
         print("No small-field races to generate a report for.")
@@ -631,19 +730,52 @@ def run_mode_B(master_race_list: list[dict]):
 # MAIN ORCHESTRATION
 # ==============================================================================
 
+DATA_SOURCES = [
+    {
+        "name": "Sky Sports",
+        "url": "https://www.skysports.com/racing/racecards",
+        "scraper": universal_sky_sports_scan,
+    },
+    {
+        "name": "Sporting Life",
+        "url": "https://www.sportinglife.com/racing/racecards",
+        "scraper": universal_sporting_life_scan,
+    },
+]
+
 def main():
     """The main orchestration function."""
     print("=" * 80)
     print("🚀 Unified Racing Report Generator")
     print("=" * 80)
 
-    # Step 1: Universal Scan
-    SKYSPORTS_URL = "https://www.skysports.com/racing/racecards"
-    sky_sports_html = fetch_page(SKYSPORTS_URL)
-    master_race_list = universal_sky_sports_scan(sky_sports_html, SKYSPORTS_URL)
+    # Step 1: Universal Scans from multiple sources
+    races_dict = {}
+
+    for source in DATA_SOURCES:
+        print(f"\n--- Processing source: {source['name']} ---")
+        html_content = fetch_page(source['url'])
+        if html_content:
+            races = source['scraper'](html_content, source['url'])
+            print(f"\nProcessing and merging {source['name']} races...")
+            for race in races:
+                key = (normalize_track_name(race['course']), race['time'])
+                if key not in races_dict:
+                    races_dict[key] = race
+                    print(f"   -> Added new race from {source['name']}: {race['course']} {race['time']}")
+                else:
+                    existing_race = races_dict[key]
+                    new_field_size = race.get('field_size')
+                    if new_field_size is not None and new_field_size != existing_race.get('field_size'):
+                        if new_field_size > existing_race.get('field_size', 0):
+                            print(f"   -> Updating field size for {race['course']} {race['time']} from {existing_race.get('field_size')} to {new_field_size} (source: {source['name']})")
+                            existing_race['field_size'] = new_field_size
+
+    master_race_list = list(races_dict.values())
+    print(f"\nTotal unique races found after merging: {len(master_race_list)}")
 
     if not master_race_list:
-        print("\nCould not retrieve the master race list from Sky Sports. Exiting.")
+        print("\nCould not retrieve any race list from any source. Exiting.")
         return
 
     # Step 2: Environmental Check

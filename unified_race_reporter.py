@@ -27,6 +27,48 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 # ==============================================================================
+# CONSTANTS
+# ==============================================================================
+
+TIMEZONE_MAP = {
+    'UK': 'Europe/London',
+    'IRE': 'Europe/Dublin',
+    'FR': 'Europe/Paris',
+    'SAF': 'Africa/Johannesburg',
+    # Note: USA and CAN are large countries with multiple timezones.
+    # These are reasonable defaults for the most common tracks.
+    'USA': 'America/New_York',
+    'CAN': 'America/Toronto',
+    'ARG': 'America/Argentina/Buenos_Aires',
+    'URU': 'America/Montevideo',
+    'AUS': 'Australia/Sydney',
+}
+
+COURSE_TO_COUNTRY_MAP = {
+    # UK
+    'haydock': 'UK', 'newmarket': 'UK', 'ascot': 'UK', 'redcar': 'UK', 'ayr': 'UK',
+    'lingfield': 'UK', 'lingfield park': 'UK', 'haydock park': 'UK',
+    # Ireland
+    'curragh': 'IRE', 'kilbeggan': 'IRE',
+    # France
+    'argentan': 'FR', 'deauville': 'FR', 'enghien': 'FR',
+    # South Africa
+    'turffontein': 'SAF',
+    # USA
+    'saratoga': 'USA', 'canterbury park': 'USA', 'charles town': 'USA',
+    'colonial downs': 'USA', 'del mar': 'USA', 'delaware park': 'USA',
+    'ellis park': 'USA', 'fairmount park': 'USA', 'gulfstream': 'USA',
+    'monmouth park': 'USA', 'remington park': 'USA',
+    # Canada
+    'woodbine': 'CAN',
+    # Argentina
+    'san isidro': 'ARG',
+    # Uruguay
+    'maronas': 'URU',
+}
+
+
+# ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
 
@@ -179,7 +221,6 @@ def universal_sporting_life_scan(html_content: str, base_url: str):
     soup = BeautifulSoup(html_content, 'html.parser')
     all_races = []
     processed_races = set() # To avoid processing the same race multiple times
-    source_tz = pytz.timezone('Europe/London')
 
     race_links = soup.find_all('a', href=re.compile(r'/racing/racecards/....-..-../.*/racecard/'))
 
@@ -232,19 +273,16 @@ def universal_sporting_life_scan(html_content: str, base_url: str):
         runner_match = re.search(r'(\d+)\s+Runners', details_text, re.IGNORECASE)
         field_size = int(runner_match.group(1)) if runner_match else 0
 
-        # This is a very rough way to get the country.
-        # A better way would be to have a mapping of courses to countries.
-        country_code = "UK" # Default to UK
-        if course.lower() in ['deauville', 'argentan', 'enghien']:
-            country_code = "FR"
-        if course.lower() in ['curragh', 'kilbeggan']:
-            country_code = "IRE"
-        if course.lower() in ['turffontein']:
-            country_code = "SAF"
-
+        # Determine country from the new map
+        normalized_course = normalize_track_name(course)
+        country_code = COURSE_TO_COUNTRY_MAP.get(normalized_course, 'UK') # Default to UK if not found
 
         datetime_utc = None
         try:
+            # Look up the timezone for the country
+            tz_name = TIMEZONE_MAP.get(country_code, 'Europe/London') # Default to London
+            source_tz = pytz.timezone(tz_name)
+
             # The date format from the URL is YYYY-MM-DD
             naive_dt = datetime.strptime(f"{date_from_url} {race_time}", '%Y-%m-%d %H:%M')
             datetime_utc = source_tz.localize(naive_dt).astimezone(pytz.utc)
@@ -258,7 +296,7 @@ def universal_sporting_life_scan(html_content: str, base_url: str):
             'race_url': race_url, 'country': country_code, 'date_iso': date_iso_str,
             'datetime_utc': datetime_utc
         })
-        print(f"   -> Found: {course} ({country_code}) at {race_time} [Europe/London]")
+        print(f"   -> Found: {course} ({country_code}) at {race_time} [{tz_name}]")
 
 
     print(f"✅ Sporting Life Scan complete. Found {len(all_races)} races in total.")

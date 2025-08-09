@@ -552,8 +552,8 @@ def generate_mode_B_report(races: list[dict]):
                 if race.get("rs_link"):
                     html_body += f'<a href="{race["rs_link"]}" target="_blank" class="rs-link">R&S Meeting Form</a>'
                 else:
-                    # Only show the "Ignored" tag for UK/Ireland races
-                    if race['country'].lower() in ['uk', 'ireland', 'united kingdom', 'ire']:
+                    # Only show the "Ignored" tag for UK, IRE, FR, SAF, USA, AUS, URU races
+                    if race['country'].upper() in ['UK', 'IRE', 'FR', 'SAF', 'USA', 'AUS', 'URU']:
                          html_body += '<span class="rs-ignored-tag">Ignored by R&S</span>'
 
                 html_body += '</div></div>'
@@ -592,11 +592,11 @@ def run_mode_B(master_race_list: list[dict]):
     rs_lookup_table = build_rs_lookup_table(all_rs_meetings)
 
     # 3. Enrich the race list with R&S links
-    print("\n🔗 Matching Sky Sports races with R&S links (for UK, Ireland, and France)...")
+    print("\n🔗 Matching Sky Sports races with R&S links for all supported countries...")
     enriched_races = []
     for race in small_field_races:
         race['rs_link'] = None  # Default to no link
-        if race['country'].upper() in ['UK', 'IRE', 'FR']:
+        if race['country'].upper() in ['UK', 'IRE', 'FR', 'SAF', 'USA', 'AUS', 'URU']:
             date_str_ddmmyyyy = race.get('date_iso')
             if not date_str_ddmmyyyy:
                 print(f"   -> {race['course']} @ {race['time']}: Could not find date_iso in race data.")

@@ -120,7 +120,7 @@ def sort_and_limit_races(races: list[dict], limit: int = 20) -> list[dict]:
 # STEP 1: UNIVERSAL SCAN
 # ==============================================================================
 
-def universal_sky_sports_scan(html_content: str, base_url: str):
+def universal_sky_sports_scan(html_content: str, base_url: str, today_str: str):
     """
     (Corrected Final Version) Scrapes Sky Sports racecards. This version is
     based on the correct HTML structure and uses the ground truth that all
@@ -180,18 +180,29 @@ def universal_sky_sports_scan(html_content: str, base_url: str):
             field_size = int(runner_match.group(1)) if runner_match else 0
 
             race_url = urljoin(base_url, racecard_tag.get('href'))
-            course, date_str = parse_sky_url_for_info(race_url)
-            if not course or not date_str:
+            course, date_str_from_url = parse_sky_url_for_info(race_url)
+            if not course or not date_str_from_url:
+                continue
+
+            # Convert race date to YYYY-MM-DD for comparison
+            try:
+                race_date_obj = datetime.strptime(date_str_from_url, '%d-%m-%Y')
+                race_date_str_for_comp = race_date_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                continue # Skip if date format is unexpected
+
+            if race_date_str_for_comp != today_str:
+                print(f"   -> Skipping race on {date_str_from_url}: Not today.")
                 continue
 
             time_span = container.find('span', class_='sdc-site-racing-meetings__event-time')
             race_time = time_span.get_text(strip=True) if time_span else "N/A"
 
             datetime_utc = None
-            if race_time != "N/A" and date_str:
+            if race_time != "N/A" and date_str_from_url:
                 try:
                     # The date format from the URL is DD-MM-YYYY
-                    naive_dt = datetime.strptime(f"{date_str} {race_time}", '%d-%m-%Y %H:%M')
+                    naive_dt = datetime.strptime(f"{date_str_from_url} {race_time}", '%d-%m-%Y %H:%M')
                     # Localize all times to London, then convert to UTC
                     datetime_utc = source_tz.localize(naive_dt).astimezone(pytz.utc)
                 except (ValueError, KeyError):
@@ -199,7 +210,7 @@ def universal_sky_sports_scan(html_content: str, base_url: str):
 
             all_races.append({
                 'course': course, 'time': race_time, 'field_size': field_size,
-                'race_url': race_url, 'country': country_code, 'date_iso': date_str,
+                'race_url': race_url, 'country': country_code, 'date_iso': date_str_from_url,
                 'datetime_utc': datetime_utc
             })
             print(f"   -> Found: {course} ({country_code}) at {race_time} [Europe/London]")
@@ -208,7 +219,7 @@ def universal_sky_sports_scan(html_content: str, base_url: str):
     return all_races
 
 
-def universal_sporting_life_scan(html_content: str, base_url: str):
+def universal_sporting_life_scan(html_content: str, base_url: str, today_str: str):
     """
     Scrapes Sporting Life racecards.
     This version is based on the HTML structure of the racecards page.
@@ -233,6 +244,11 @@ def universal_sporting_life_scan(html_content: str, base_url: str):
             if 'racecard' in path_parts:
                 idx = path_parts.index('racecards')
                 date_from_url = path_parts[idx + 1]
+
+                if date_from_url != today_str:
+                    print(f"   -> Skipping race on {date_from_url}: Not today.")
+                    continue
+
                 course = path_parts[idx + 2].replace('-', ' ').title()
             else:
                 continue
@@ -787,6 +803,10 @@ def main():
     print("🚀 Unified Racing Report Generator")
     print("=" * 80)
 
+    # Establish "Today"
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    print(f"📅 Running for date: {today_str}")
+
     # Step 1: Universal Scans from multiple sources
     races_dict = {}
 
@@ -794,7 +814,7 @@ def main():
         print(f"\n--- Processing source: {source['name']} ---")
         html_content = fetch_page(source['url'])
         if html_content:
-            races = source['scraper'](html_content, source['url'])
+            races = source['scraper'](html_content, source['url'], today_str)
             print(f"\nProcessing and merging {source['name']} races...")
             for race in races:
                 key = (normalize_track_name(race['course']), race['time'])

@@ -40,6 +40,7 @@ TIMEZONE_MAP = {
 }
 
 COURSE_TO_COUNTRY_MAP = {
+
     # USA
     'oaklawn': 'USA', 'arizona downs': 'USA', 'rillito': 'USA', 'turf paradise': 'USA', 'cal expo': 'USA',
     'del mar': 'USA', 'ferndale': 'USA', 'fresno': 'USA', 'golden gate fields': 'USA',
@@ -232,6 +233,7 @@ COURSE_TO_COUNTRY_MAP = {
     'za - clairwood': 'ZA', 'za - durbanville': 'ZA', 'za - fairview': 'ZA', 'za - flamingo': 'ZA',
     'za - greyville': 'ZA', 'za - kenilworth': 'ZA', 'za - mauritius': 'ZA', 'za - scottsville': 'ZA',
     'za - turffontein': 'ZA', 'za - vaal': 'ZA',
+
 }
 
 # ==============================================================================
@@ -673,6 +675,7 @@ def fetch_rpb2b_api_data(today_date: date):
 def main():
     print("=" * 80); print("🚀 Unified Racing Report Generator"); print("=" * 80)
     user_tz = pytz.timezone("America/New_York")
+
     today = datetime.now(user_tz).date()
     print(f"📅 Operating on User's Date: {today.strftime('%Y-%m-%d')}")
     races_dict = {}
@@ -709,12 +712,14 @@ def main():
                         print(f"   -> Updating field size for {race['course']} {race['time']} to {new_size}")
                         races_dict[key]['field_size'] = new_size
 
+
     master_race_list = list(races_dict.values())
     print(f"\nTotal unique races found for today: {len(master_race_list)}")
     if not master_race_list:
         print("\nCould not retrieve any race list for today. Exiting."); return
 
     # --- Step 3: Run Appropriate Mode ---
+
     if check_attheraces_connectivity():
         run_mode_A(master_race_list)
     else:

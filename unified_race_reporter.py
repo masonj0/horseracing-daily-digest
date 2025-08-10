@@ -431,7 +431,95 @@ def run_mode_B(master_race_list: list[dict]):
     generate_mode_B_report(enriched_races)
 
 # ==============================================================================
-# FALLBACK DATA SOURCE (for Restricted Mode)
+# FALLBACK DATA SOURCE #1: ODDSCHECKER
+# ==============================================================================
+def scrape_oddschecker():
+    """
+    FALLBACK #1: Scrapes oddschecker.com for global race data.
+    This is used if the primary AtTheRaces API fails.
+    """
+    print("\n scraping oddschecker.com for global race data...")
+    base_url = "https://www.oddschecker.com"
+    race_list_url = f"{base_url}/horse-racing"
+
+    try:
+        response = requests.get(race_list_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+    except requests.exceptions.RequestException as e:
+        print(f"   ❌ Failed to fetch oddschecker race list: {e}")
+        raise ConnectionError("Could not connect to oddschecker.com") from e
+
+    race_links = []
+    for link in soup.find_all('a', href=True):
+        href = link['href']
+        if href and href.startswith('/horse-racing/') and re.search(r'/\d{4}-\d{2}-\d{2}-', href):
+            race_links.append(f"{base_url}{href}")
+
+    race_links = sorted(list(set(race_links)))
+    print(f"Found {len(race_links)} race links to scrape on oddschecker.")
+
+    master_race_list = []
+    for race_url in race_links[:20]: # Limit requests to avoid being blocked during testing
+        try:
+            print(f"   -> Scraping race: {race_url}")
+            race_page_res = requests.get(race_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+            race_page_res.raise_for_status()
+            race_soup = BeautifulSoup(race_page_res.text, 'html.parser')
+
+            # Extract course and time from URL
+            parts = race_url.split('/')
+            course = parts[-2].split('-')[-1].replace('-', ' ').title()
+            race_time = parts[-1]
+
+            # Extract country
+            country_tag = race_soup.find('img', {'class': 'race-header-country-flag'})
+            country = country_tag['alt'] if country_tag else 'Unknown'
+
+            # Extract field size
+            starters_tag = race_soup.find('span', string=re.compile(r'Starters'))
+            field_size = int(re.search(r'\d+', starters_tag.text).group()) if starters_tag else 0
+            if field_size == 0: continue # Skip if we can't find field size
+
+            # This page doesn't have full UTC, so we create a naive string
+            date_str = re.search(r'(\d{4}-\d{2}-\d{2})', race_url).group(1)
+            datetime_utc_str = f"{date_str} {race_time}"
+
+            # Scrape horses and odds
+            horses = []
+            horse_rows = race_soup.find_all('tr', {'class': 'diff-row ev-expand-btn'})
+            for row in horse_rows:
+                horse_name_tag = row.find('p', {'class': 'race-card-horse-name'})
+                odds_tag = row.find('p', {'class': 'race-card-odds'})
+                if horse_name_tag and odds_tag:
+                    horses.append({
+                        'name': horse_name_tag.text.strip(),
+                        'odds_str': odds_tag.text.strip(),
+                        'odds_float': convert_odds_to_float(odds_tag.text.strip())
+                    })
+
+            if not horses: continue
+            horses.sort(key=lambda x: x['odds_float'])
+
+            master_race_list.append({
+                'course': course,
+                'time': race_time,
+                'datetime_utc': datetime_utc_str,
+                'field_size': field_size,
+                'country': country,
+                'race_url': race_url,
+                'favorite': horses[0] if len(horses) > 0 else None,
+                'second_favorite': horses[1] if len(horses) > 1 else None,
+            })
+        except Exception as e:
+            print(f"   ⚠️ Could not scrape race URL {race_url}: {e}")
+            continue
+
+    print(f"✅ Oddschecker scrape complete. Found data for {len(master_race_list)} races.")
+    return master_race_list
+
+# ==============================================================================
+# FALLBACK DATA SOURCE #2 (for Restricted Mode)
 # ==============================================================================
 def fetch_races_from_rpb2b_api():
     """
@@ -489,37 +577,51 @@ def fetch_races_from_rpb2b_api():
 # ==============================================================================
 
 def main():
-    """The main orchestration function."""
+    """The main orchestration function with a graceful fallback chain."""
     print("=" * 80)
     print("🚀 Unified Racing Report Generator")
     print("=" * 80)
 
+    # --- Attempt 1: Primary API (AtTheRaces) ---
     try:
-        # Step 1: Attempt the primary universal scan from AtTheRaces
+        print("\n--- Attempting Primary Source: AtTheRaces API ---")
         atr_regions = ['uk', 'ireland', 'usa', 'france', 'saf', 'aus']
         master_race_list = universal_atr_scan(atr_regions)
 
-        # If the scan succeeds, we are in UNRESTRICTED MODE
-        print("\n-- Running Mode A: Unrestricted Workflow --")
-        if not master_race_list:
-            print("\nNo races found from AtTheRaces today. Exiting.")
-            return
+        print("\n✅ Primary source successful. Running in Unrestricted Mode.")
         run_mode_A(master_race_list)
+        print("\n🏁 Report generation process complete.")
+        return
+    except ConnectionError as e:
+        print(f"\n⚠️ {e} Moving to fallback source #1.")
 
-    except ConnectionError:
-        # ATR scan failed, so we are in RESTRICTED MODE
-        print("\n⚠️ Primary ATR source failed. Switching to Restricted Mode.")
+    # --- Attempt 2: Fallback Scraper (Oddschecker) ---
+    try:
+        print("\n--- Attempting Fallback Source #1: Oddschecker Scraper ---")
+        master_race_list = scrape_oddschecker()
+        if not master_race_list: raise ConnectionError("Oddschecker returned no data.")
 
-        # Use the rpb2b.com API as a fallback data source
-        fallback_race_list = fetch_races_from_rpb2b_api()
+        print("\n✅ Oddschecker scrape successful. Running in Restricted Mode.")
+        run_mode_B(master_race_list)
+        print("\n🏁 Report generation process complete.")
+        return
+    except ConnectionError as e:
+        print(f"\n⚠️ {e} Moving to final fallback source.")
 
-        if not fallback_race_list:
-            print("\n❌ All data sources failed. Cannot generate a report. Exiting.")
-            return
+    # --- Attempt 3: Final Fallback API (rpb2b.com) ---
+    try:
+        print("\n--- Attempting Final Fallback Source #2: rpb2b.com API ---")
+        master_race_list = fetch_races_from_rpb2b_api()
+        if not master_race_list: raise ConnectionError("rpb2b.com API returned no data.")
 
-        # Run Mode B logic with the fallback data
-        print("\n-- Running Mode B: Restricted Workflow (with fallback data) --")
-        run_mode_B(fallback_race_list)
+        print("\n✅ Final fallback successful. Running in Restricted Mode (NA only).")
+        run_mode_B(master_race_list)
+        print("\n🏁 Report generation process complete.")
+        return
+    except Exception as e:
+        print(f"\n❌ All data sources failed. Could not retrieve any data. {e}")
+
+    print("\n🏁 Script finished: All data sources were unavailable.")
 
 
 if __name__ == "__main__":

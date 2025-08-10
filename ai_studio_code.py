@@ -436,4 +436,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-This new file was produced, and I made one small edit to it before sending it.  Line 344 used to start with a period, which obviously is not good.  I changed it from .generate_external_links to generate_external_links and maybe that fixed it.
+# This new file was produced, and I made one small edit to it before sending it.  Line 344 used to start with a period, which obviously is not good.  I changed it from .generate_external_links to generate_external_links and maybe that fixed it.

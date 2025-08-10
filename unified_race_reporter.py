@@ -120,19 +120,19 @@ def sort_and_limit_races(races: list[dict], limit: int = 20) -> list[dict]:
 # STEP 1: UNIVERSAL SCAN
 # ==============================================================================
 
+
 def universal_sky_sports_scan(html_content: str, base_url: str, today_str: str):
     """
     (Corrected Final Version) Scrapes Sky Sports racecards. This version is
     based on the correct HTML structure and uses the ground truth that all
     times are presented in UK time.
     """
-    if not html_content:
-        print("❌ HTML content is empty. Cannot perform the scan.")
-        return []
+    print("\n🛰️ Performing Universal Scan from AtTheRaces...")
+    today_str_url = datetime.now().strftime('%Y-%m-%d')
+    today_str_atr = datetime.now().strftime('%Y%m%d')
 
-    print("\n🔍 Starting Universal Scan of Sky Sports...")
-    soup = BeautifulSoup(html_content, 'html.parser')
-    all_races = []
+    master_race_list = []
+
 
     # Ground truth: All times on Sky Sports are UK time.
     source_tz = pytz.timezone('Europe/London')
@@ -173,8 +173,10 @@ def universal_sky_sports_scan(html_content: str, base_url: str, today_str: str):
             racecard_tag = container.find('a', class_='sdc-site-racing-meetings__event-link')
             race_details_span = container.find('span', class_='sdc-site-racing-meetings__event-details')
 
-            if not racecard_tag or not race_details_span:
-                continue
+            course_header = caption.find_parent('div', class_='panel').find('h2')
+            course_name = course_header.get_text(strip=True) if course_header else None
+            if not course_name: continue
+
 
             runner_match = re.search(r'(\d+)\s+runners?', race_details_span.get_text(strip=True), re.IGNORECASE)
             field_size = int(runner_match.group(1)) if runner_match else 0
@@ -215,8 +217,8 @@ def universal_sky_sports_scan(html_content: str, base_url: str, today_str: str):
             })
             print(f"   -> Found: {course} ({country_code}) at {race_time} [Europe/London]")
 
-    print(f"✅ Universal Scan complete. Found {len(all_races)} races in total.")
-    return all_races
+    print(f"✅ ATR Universal Scan complete. Found {len(master_race_list)} races globally.")
+    return master_race_list
 
 
 def universal_sporting_life_scan(html_content: str, base_url: str, today_str: str):
@@ -373,6 +375,7 @@ def convert_odds_to_float(odds_str: str) -> float:
     except ValueError:
         return 9999.0
 
+
 def fetch_atr_odds_data(regions: list[str]) -> dict:
     """
     Fetches and parses all races for given regions from the ATR AJAX endpoint.
@@ -483,7 +486,7 @@ def generate_mode_A_report(races: list[dict]):
             sec_fav = race['second_favorite']
             html_body += f"""
             <div class="race-card">
-                <div class="race-header">{race['course']} - Race Time: {race['time']}</div>
+                <div class="race-header">{race['course']} ({race['country']}) - Race Time: {race['time']}</div>
                 <div class="race-meta">Field Size: {race['field_size']} Runners</div>
                 <div class="horse-details"><b>Favorite:</b> {fav['name']} (<b>{fav['odds_str']}</b>)</div>
                 <div class="horse-details"><b>2nd Favorite:</b> {sec_fav['name']} (<b>{sec_fav['odds_str']}</b>)</div>
@@ -503,8 +506,10 @@ def generate_mode_A_report(races: list[dict]):
 
 def run_mode_A(master_race_list: list[dict]):
     """
-    Executes the full workflow for unrestricted mode.
+    Filters the rich master list from ATR to find races meeting the criteria
+    and generates the 'Perfect Tipsheet' report.
     """
+
     print("\n-- Running Mode A: Unrestricted Workflow --")
 
     # 1. Filter master list for small fields (3-6 runners)
@@ -544,24 +549,25 @@ def run_mode_A(master_race_list: list[dict]):
             fav = atr_data.get('favorite')
             sec_fav = atr_data.get('second_favorite')
 
-            if not fav or not sec_fav:
-                continue
+
+        if not (fav and sec_fav):
+            continue
+
 
             # The ultimate filter criteria for odds
             fav_odds_ok = fav['odds_float'] >= 1.0
             sec_fav_odds_ok = sec_fav['odds_float'] >= 3.0
 
-            if fav_odds_ok and sec_fav_odds_ok:
-                # We have a match! Add odds info to the race dict
-                race['favorite'] = fav
-                race['second_favorite'] = sec_fav
-                perfect_tips.append(race)
-                print(f"   ✅ MATCH: {race['course']} {race['time']}")
+
+        if field_size_ok and fav_odds_ok and sec_fav_odds_ok:
+            perfect_tips.append(race)
+            print(f"   ✅ MATCH: {race['course']} ({race['country']}) at {race['time']}")
 
     # Sort the final list chronologically before generating the report
     perfect_tips.sort(key=lambda r: r['datetime_utc'])
 
     # 4. Generate and save the report
+
     generate_mode_A_report(perfect_tips)
 
 # ==============================================================================
@@ -571,7 +577,6 @@ def run_mode_A(master_race_list: list[dict]):
 class RacingAndSportsFetcher:
     """
     Fetches and processes meeting data from the Racing & Sports JSON endpoint.
-    Adapted from RacingAndSports_RacingMonitor_continuous.py.
     """
     def __init__(self, api_url):
         self.api_url = api_url
@@ -590,10 +595,8 @@ class RacingAndSportsFetcher:
             response = self.session.get(self.api_url, timeout=30, verify=False)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
             print(f"   ❌ ERROR: Could not fetch R&S JSON directory: {e}")
-        except json.JSONDecodeError:
-            print("   ❌ ERROR: Failed to decode R&S main directory. Not valid JSON.")
         return None
 
     def process_meetings_data(self, json_data):
@@ -636,20 +639,23 @@ def build_rs_lookup_table(rs_meetings):
     print(f"   ✅ Lookup table created with {len(lookup)} R&S entries.")
     return lookup
 
-def find_rs_link(sky_track: str, sky_date_iso: str, lookup_table: dict):
+def find_rs_link(race_course: str, race_url: str, lookup_table: dict):
     """
     Finds a matching R&S meeting link using the lookup table with flexibility.
     """
-    normalized_sky_track = normalize_track_name(sky_track)
+    try:
+        date_str_iso = re.search(r'/(\d{4}-\d{2}-\d{2})', race_url).group(1)
+    except AttributeError:
+        return None # Cannot find a date in the URL to match on.
 
-    # First, try a direct match on the key.
-    direct_key = (normalized_sky_track, sky_date_iso)
+    normalized_sky_track = normalize_track_name(race_course)
+
+    direct_key = (normalized_sky_track, date_str_iso)
     if direct_key in lookup_table:
         return lookup_table[direct_key]
 
-    # If that fails, iterate for a flexible substring match on the same date.
     for (rs_track_normalized, rs_date), rs_link in lookup_table.items():
-        if rs_date == sky_date_iso:
+        if rs_date == date_str_iso:
             if normalized_sky_track in rs_track_normalized or rs_track_normalized in normalized_sky_track:
                 return rs_link
 
@@ -670,7 +676,7 @@ def generate_mode_B_report(races: list[dict]):
         .race-entry { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: #fafafa; }
         .race-details { font-weight: bold; font-size: 1.1em; color: #333; margin-bottom: 10px; }
         .race-links a, .race-links span { display: inline-block; text-decoration: none; padding: 8px 15px; border-radius: 4px; margin: 5px 10px 5px 0; font-weight: bold; min-width: 160px; text-align: center; }
-        a.sky-link { background-color: #007bff; color: white; } a.sky-link:hover { background-color: #0056b3; }
+        a.atr-link { background-color: #007bff; color: white; } a.atr-link:hover { background-color: #0056b3; }
         a.rs-link { background-color: #dc3545; color: white; } a.rs-link:hover { background-color: #c82333; }
         span.rs-ignored-tag { color: #6c757d; background-color: #fff; border: 1px solid #ccc; cursor: default; }
         .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #777; }
@@ -680,11 +686,13 @@ def generate_mode_B_report(races: list[dict]):
     html_body = ""
 
     if not races:
+
         html_body += "<p>No races with 3 to 6 runners were found on any of the tracked sources today.</p>"
+
     else:
         races_by_course = {}
         for race in races:
-            races_by_course.setdefault(race['course'], []).append(race)
+            races_by_course.setdefault(f"{race['course']} ({race['country']})", []).append(race)
 
         # Preserve original race order by iterating through the original list
         # to determine the order of courses.
@@ -700,14 +708,16 @@ def generate_mode_B_report(races: list[dict]):
             html_body += f'<div class="course-group"><div class="course-header">{course}</div>'
             for race in course_races: # Races are already sorted
                 html_body += f'<div class="race-entry"><p class="race-details">Race at {race["time"]} ({race["field_size"]} runners)</p><div class="race-links">'
-                html_body += f'<a href="{race["race_url"]}" target="_blank" class="sky-link">Sky Sports Racecard</a>'
+                html_body += f'<a href="{race["race_url"]}" target="_blank" class="atr-link">ATR Racecard</a>'
 
                 if race.get("rs_link"):
                     html_body += f'<a href="{race["rs_link"]}" target="_blank" class="rs-link">R&S Meeting Form</a>'
                 else:
+
                     # Only show the "Ignored" tag for UK, IRE, FR, SAF, USA, AUS, URU races
                     if race['country'].upper() in ['UK', 'IRE', 'FR', 'SAF', 'USA', 'AUS', 'URU']:
                          html_body += '<span class="rs-ignored-tag">Ignored by R&S</span>'
+
 
                 html_body += '</div></div>'
             html_body += '</div>'
@@ -724,6 +734,7 @@ def generate_mode_B_report(races: list[dict]):
         print(f"\n❌ Error saving the report: {e}")
 
 def run_mode_B(master_race_list: list[dict]):
+
     """Executes the full workflow for restricted mode."""
     print("\n-- Running Mode B: Restricted Workflow --")
 
@@ -731,13 +742,13 @@ def run_mode_B(master_race_list: list[dict]):
     small_field_races = [r for r in master_race_list if 3 <= r.get('field_size', 0) <= 6]
     print(f"Found {len(small_field_races)} races with 3 to 6 runners.")
 
+
     if not small_field_races:
         print("No small-field races to generate a report for.")
         generate_mode_B_report([])
         return
 
-    # 2. Get R&S meeting data to build a lookup table
-    print("\n🗞️ Fetching data from Racing & Sports...")
+    print("\n🗞️ Fetching data from Racing & Sports to find matching form guides...")
     rs_api_url = "https://www.racingandsports.com.au/todays-racing-json-v2"
     link_fetcher = RacingAndSportsFetcher(rs_api_url)
     json_data = link_fetcher.fetch_data()
@@ -778,7 +789,61 @@ def run_mode_B(master_race_list: list[dict]):
     enriched_races = sort_and_limit_races(enriched_races)
 
     # 5. Generate and save the report
+
     generate_mode_B_report(enriched_races)
+
+# ==============================================================================
+# FALLBACK DATA SOURCE (for Restricted Mode)
+# ==============================================================================
+def fetch_races_from_rpb2b_api():
+    """
+    FALLBACK SCAN: Fetches daily racecards from the rpb2b.com JSON API.
+    This is used only when the primary AtTheRaces source is unavailable.
+    NOTE: This API endpoint appears to be for North American (USA/CAN) races only.
+    """
+    print("\n🔍 Fetching fallback race data from rpb2b.com API...")
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    api_url = f"https://backend-us-racecards.widget.rpb2b.com/v2/racecards/daily/{today_str}"
+
+    print(f"-> Querying API: {api_url}")
+    try:
+        response = requests.get(api_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        response.raise_for_status()
+        api_data = response.json()
+        print("   ✅ Success.")
+    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+        print(f"   ❌ Failed to fetch from fallback API: {e}")
+        return []
+
+    fallback_race_list = []
+    for meeting in api_data:
+        course_name = meeting.get('name')
+        country_code = meeting.get('countryCode')
+        if not course_name or not country_code: continue
+
+        course_slug = course_name.lower().replace(' ', '-')
+        sky_meeting_url = f"https://www.skysports.com/racing/racecards/{course_slug}/{today_str}"
+
+        for race in meeting.get('races', []):
+            utc_datetime_str = race.get('datetimeUtc')
+            num_runners = race.get('numberOfRunners')
+            if not utc_datetime_str or num_runners is None: continue
+
+            try:
+                race_datetime_utc = datetime.fromisoformat(utc_datetime_str.replace('Z', '+00:00'))
+                race_time_str = race_datetime_utc.strftime('%H:%M')
+            except ValueError: continue
+
+            fallback_race_list.append({
+                'course': course_name,
+                'time': race_time_str,
+                'field_size': num_runners,
+                'race_url': sky_meeting_url,
+                'country': country_code,
+                'favorite': None,
+                'second_favorite': None,
+            })
+    return fallback_race_list
 
 # ==============================================================================
 # MAIN ORCHESTRATION
@@ -802,6 +867,7 @@ def main():
     print("=" * 80)
     print("🚀 Unified Racing Report Generator")
     print("=" * 80)
+
 
     # Establish "Today"
     today_str = datetime.now().strftime('%Y-%m-%d')
@@ -836,13 +902,14 @@ def main():
         print("\nCould not retrieve any race list from any source. Exiting.")
         return
 
-    # Step 2: Environmental Check
-    is_unrestricted = check_attheraces_connectivity()
 
-    if is_unrestricted:
-        run_mode_A(master_race_list)
-    else:
-        run_mode_B(master_race_list)
+        if not fallback_race_list:
+            print("\n❌ All data sources failed. Cannot generate a report. Exiting.")
+            return
+
+        # Run Mode B logic with the fallback data
+        print("\n-- Running Mode B: Restricted Workflow (with fallback data) --")
+        run_mode_B(fallback_race_list)
 
 
 if __name__ == "__main__":

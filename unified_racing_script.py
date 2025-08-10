@@ -37,10 +37,14 @@ TIMEZONE_MAP = {
     'UK': 'Europe/London', 'IRE': 'Europe/Dublin', 'FR': 'Europe/Paris',
     'SAF': 'Africa/Johannesburg', 'USA': 'America/New_York', 'CAN': 'America/Toronto',
     'ARG': 'America/Argentina/Buenos_Aires', 'URU': 'America/Montevideo', 'AUS': 'Australia/Sydney',
+    'UAE': 'Asia/Dubai', 'BH': 'Asia/Bahrain', 'CL': 'America/Santiago', 'DE': 'Europe/Berlin',
+    'DK': 'Europe/Copenhagen', 'FI': 'Europe/Helsinki', 'HK': 'Asia/Hong_Kong', 'IN': 'Asia/Kolkata',
+    'IT': 'Europe/Rome', 'JM': 'America/Jamaica', 'JP': 'Asia/Tokyo', 'KR': 'Asia/Seoul',
+    'MY': 'Asia/Kuala_Lumpur', 'NO': 'Europe/Oslo', 'NZ': 'Pacific/Auckland', 'SA': 'Asia/Riyadh',
+    'SG': 'Asia/Singapore', 'SE': 'Europe/Stockholm',
 }
 
 COURSE_TO_COUNTRY_MAP = {
-
     # USA
     'oaklawn': 'USA', 'arizona downs': 'USA', 'rillito': 'USA', 'turf paradise': 'USA', 'cal expo': 'USA',
     'del mar': 'USA', 'ferndale': 'USA', 'fresno': 'USA', 'golden gate fields': 'USA',
@@ -233,7 +237,6 @@ COURSE_TO_COUNTRY_MAP = {
     'za - clairwood': 'ZA', 'za - durbanville': 'ZA', 'za - fairview': 'ZA', 'za - flamingo': 'ZA',
     'za - greyville': 'ZA', 'za - kenilworth': 'ZA', 'za - mauritius': 'ZA', 'za - scottsville': 'ZA',
     'za - turffontein': 'ZA', 'za - vaal': 'ZA',
-
 }
 
 # ==============================================================================
@@ -660,7 +663,8 @@ def fetch_rpb2b_api_data(today_date: date):
             if not utc_time_str: continue
 
             utc_time = datetime.fromisoformat(utc_time_str.replace('Z', '+00:00'))
-            local_tz = pytz.timezone(TIMEZONE_MAP.get(country_code, 'America/New_York'))
+            local_tz_name = TIMEZONE_MAP.get(country_code, 'America/New_York')
+            local_tz = pytz.timezone(local_tz_name)
             local_time = utc_time.astimezone(local_tz)
 
             all_races.append({
@@ -675,22 +679,22 @@ def fetch_rpb2b_api_data(today_date: date):
 def main():
     print("=" * 80); print("🚀 Unified Racing Report Generator"); print("=" * 80)
     user_tz = pytz.timezone("America/New_York")
-
     today = datetime.now(user_tz).date()
     print(f"📅 Operating on User's Date: {today.strftime('%Y-%m-%d')}")
     races_dict = {}
 
-    # --- Step 1: Fetch North American data from the primary API ---
+    # --- Step 1: Get North American Races (API first, then local file) ---
     na_races = fetch_rpb2b_api_data(today)
-    if na_races is None: # API failed, try local file as fallback
-        print("   -> RPB2B API failed. Falling back to local file for North America...")
+    if na_races is None:
+        print("   -> API failed. Falling back to local Equibase file for North America...")
         na_races = parse_equibase_local_file('EquibaseToday.txt', today)
 
+    print(f"\nProcessing and merging {len(na_races)} races from North American sources...")
     for race in na_races:
         key = (normalize_track_name(race['course']), race['time'])
-        if key not in races_dict: races_dict[key] = race
+        races_dict[key] = race
 
-    # --- Step 2: Scrape Web Sources for the rest of the world ---
+    # --- Step 2: Get Rest of World Races from Web Scrapers ---
     web_sources = [
         {"name": "Sky Sports", "url": "https://www.skysports.com/racing/racecards", "scraper": universal_sky_sports_scan},
         {"name": "Sporting Life", "url": "https://www.sportinglife.com/racing/racecards", "scraper": universal_sporting_life_scan},
@@ -699,19 +703,15 @@ def main():
         print(f"\n--- Processing Web Source: {source['name']} ---")
         html_content = fetch_page(source['url'])
         if html_content:
-            races = source['scraper'](html_content, source['url'], today)
-            print(f"\nProcessing and merging {len(races)} races from {source['name']}...")
-            for race in races:
-                # Only add if it's not a North American race to avoid conflicts
+            scraped_races = source['scraper'](html_content, source['url'], today)
+            print(f"\nProcessing and merging {len(scraped_races)} races from {source['name']}...")
+            for race in scraped_races:
+                # Only add if it's not a North American race to avoid adding duplicates
                 if race.get('country') not in ['USA', 'CAN']:
                     key = (normalize_track_name(race['course']), race['time'])
                     if key not in races_dict:
                         races_dict[key] = race
                         print(f"   -> Added new race: {race['course']} {race['time']}")
-                    elif (new_size := race.get('field_size', 0)) > races_dict[key].get('field_size', 0):
-                        print(f"   -> Updating field size for {race['course']} {race['time']} to {new_size}")
-                        races_dict[key]['field_size'] = new_size
-
 
     master_race_list = list(races_dict.values())
     print(f"\nTotal unique races found for today: {len(master_race_list)}")
@@ -719,7 +719,6 @@ def main():
         print("\nCould not retrieve any race list for today. Exiting."); return
 
     # --- Step 3: Run Appropriate Mode ---
-
     if check_attheraces_connectivity():
         run_mode_A(master_race_list)
     else:

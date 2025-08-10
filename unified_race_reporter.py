@@ -15,6 +15,7 @@ import time
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from urllib.parse import urljoin, urlparse
 
 # --- Third-Party Libraries ---
 import requests
@@ -457,19 +458,94 @@ def get_best_available_races():
         print("\n✅ Oddschecker scrape successful. Using global data (no live odds).")
         return master_race_list
     except ConnectionError as e:
-        print(f"\n⚠️ {e} Moving to final fallback source.")
+        print(f"\n⚠️ {e} Moving to fallback source #2.")
 
-    # --- Attempt 3: Final Fallback API (rpb2b.com) ---
+    # --- Attempt 3: Fallback API (rpb2b.com) ---
     try:
-        print("\n--- Attempting Final Fallback Source #2: rpb2b.com API ---")
+        print("\n--- Attempting Fallback Source #2: rpb2b.com API ---")
         master_race_list = fetch_races_from_rpb2b_api()
         if not master_race_list: raise ConnectionError("rpb2b.com API returned no data.")
-        print("\n✅ Final fallback successful. Using NA-only data.")
+        print("\n✅ rpb2b.com API successful. Using NA-only data.")
+        return master_race_list
+    except ConnectionError as e:
+        print(f"\n⚠️ {e} Moving to final fallback source.")
+
+    # --- Attempt 4: Final Fallback Scraper (Sky Sports) ---
+    try:
+        print("\n--- Attempting Final Fallback Source #3: Sky Sports Scraper ---")
+        master_race_list = scrape_sky_sports()
+        if not master_race_list: raise ConnectionError("Sky Sports scrape returned no data.")
+        print("\n✅ Sky Sports scrape successful. Using global data (no live odds).")
         return master_race_list
     except Exception as e:
         print(f"\n❌ All data sources failed. Could not retrieve any data. {e}")
 
     return [] # Return an empty list if all sources fail
+
+# ==============================================================================
+# FALLBACK DATA SOURCE #3: SKY SPORTS SCRAPER
+# ==============================================================================
+def scrape_sky_sports():
+    """
+    FALLBACK #3: Scrapes skysports.com for global race data.
+    This is the final fallback if all other data sources fail.
+    """
+    print("\n scraping skysports.com for global race data...")
+    base_url = "https://www.skysports.com"
+    race_list_url = f"{base_url}/racing/racecards"
+
+    try:
+        response = requests.get(race_list_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+    except requests.exceptions.RequestException as e:
+        print(f"   ❌ Failed to fetch skysports.com: {e}")
+        raise ConnectionError("Could not connect to skysports.com") from e
+
+    all_races = []
+    today_str = datetime.now().strftime('%Y-%m-%d')
+
+    meeting_containers = soup.find_all('div', class_='sdc-site-racing-meetings-group')
+    for meeting_container in meeting_containers:
+        country_header = meeting_container.find('h2', class_='sdc-site-racing-meetings__title')
+        country = country_header.get_text(strip=True) if country_header else "Unknown"
+
+        event_containers = meeting_container.find_all('div', class_='sdc-site-racing-meetings__event')
+        for container in event_containers:
+            racecard_tag = container.find('a', class_='sdc-site-racing-meetings__event-link')
+            race_details_span = container.find('span', class_='sdc-site-racing-meetings__event-details')
+            if not racecard_tag or not race_details_span: continue
+
+            details_text = race_details_span.get_text(strip=True)
+            runner_count_match = re.search(r'(\d+)\s+runners?', details_text, re.IGNORECASE)
+            if not runner_count_match: continue
+            field_size = int(runner_count_match.group(1))
+
+            race_url = urljoin(base_url, racecard_tag.get('href'))
+
+            try:
+                path_parts = urlparse(race_url).path.strip('/').split('/')
+                course = path_parts[path_parts.index('racecards') + 1].replace('-', ' ').title()
+            except (ValueError, IndexError):
+                continue
+
+            race_name_span = container.find('span', class_='sdc-site-racing-meetings__event-name')
+            time_match = re.search(r'(\d{1,2}:\d{2})', race_name_span.get_text(strip=True))
+            race_time = time_match.group(1) if time_match else "N/A"
+
+            all_races.append({
+                'course': course,
+                'time': race_time,
+                'datetime_utc': f"{today_str} {race_time}",
+                'field_size': field_size,
+                'race_url': race_url,
+                'country': country,
+                'favorite': None,
+                'second_favorite': None,
+            })
+
+    print(f"✅ Sky Sports scrape complete. Found data for {len(all_races)} races.")
+    return all_races
 
 # ==============================================================================
 # MAIN EXECUTION

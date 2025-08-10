@@ -633,10 +633,42 @@ def run_mode_B(master_race_list: list[dict]):
 # MAIN ORCHESTRATION
 # ==============================================================================
 
-DATA_SOURCES = [
-    {"name": "Sky Sports", "url": "https://www.skysports.com/racing/racecards", "scraper": universal_sky_sports_scan},
-    {"name": "Sporting Life", "url": "https://www.sportinglife.com/racing/racecards", "scraper": universal_sporting_life_scan},
-]
+def fetch_rpb2b_api_data(today_date: date):
+    """Fetches race data from the RPB2B JSON API for North America."""
+    print("\n🔍 Starting API Scan of RPB2B API for North American races...")
+    api_date = today_date.strftime('%Y-%m-%d')
+    url = f"https://backend-us-racecards.widget.rpb2b.com/v2/racecards/daily/{api_date}"
+    print(f"-> Querying API: {url}")
+
+    try:
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+        print(f"   ❌ ERROR: Failed to fetch or decode RPB2B API data: {e}")
+        return None
+
+    all_races = []
+    for meeting in data:
+        course_name, country_code = meeting.get('name'), meeting.get('countryCode')
+        if not course_name or not country_code: continue
+
+        for race in meeting.get('races', []):
+            utc_time_str = race.get('datetimeUtc')
+            if not utc_time_str: continue
+
+            utc_time = datetime.fromisoformat(utc_time_str.replace('Z', '+00:00'))
+            local_tz = pytz.timezone(TIMEZONE_MAP.get(country_code, 'America/New_York'))
+            local_time = utc_time.astimezone(local_tz)
+
+            all_races.append({
+                'course': course_name, 'time': local_time.strftime('%H:%M'),
+                'field_size': race.get('numberOfRunners', 0), 'race_url': '',
+                'country': country_code, 'date_iso': local_time.strftime('%d-%m-%Y'),
+                'datetime_utc': utc_time
+            })
+    print(f"✅ RPB2B API Scan complete. Found {len(all_races)} North American races.")
+    return all_races
 
 def main():
     print("=" * 80); print("🚀 Unified Racing Report Generator"); print("=" * 80)
@@ -645,34 +677,37 @@ def main():
     print(f"📅 Operating on User's Date: {today.strftime('%Y-%m-%d')}")
     races_dict = {}
 
-    # --- Step 1: Scrape Web Sources ---
-    for source in DATA_SOURCES:
+    # --- Step 1: Fetch North American data from the primary API ---
+    na_races = fetch_rpb2b_api_data(today)
+    if na_races is None: # API failed, try local file as fallback
+        print("   -> RPB2B API failed. Falling back to local file for North America...")
+        na_races = parse_equibase_local_file('EquibaseToday.txt', today)
+
+    for race in na_races:
+        key = (normalize_track_name(race['course']), race['time'])
+        if key not in races_dict: races_dict[key] = race
+
+    # --- Step 2: Scrape Web Sources for the rest of the world ---
+    web_sources = [
+        {"name": "Sky Sports", "url": "https://www.skysports.com/racing/racecards", "scraper": universal_sky_sports_scan},
+        {"name": "Sporting Life", "url": "https://www.sportinglife.com/racing/racecards", "scraper": universal_sporting_life_scan},
+    ]
+    for source in web_sources:
         print(f"\n--- Processing Web Source: {source['name']} ---")
         html_content = fetch_page(source['url'])
         if html_content:
             races = source['scraper'](html_content, source['url'], today)
             print(f"\nProcessing and merging {len(races)} races from {source['name']}...")
             for race in races:
-                key = (normalize_track_name(race['course']), race['time'])
-                if key not in races_dict:
-                    races_dict[key] = race
-                    print(f"   -> Added new race: {race['course']} {race['time']}")
-                elif (new_size := race.get('field_size', 0)) > races_dict[key].get('field_size', 0):
-                    print(f"   -> Updating field size for {race['course']} {race['time']} to {new_size}")
-                    races_dict[key]['field_size'] = new_size
-
-    # --- Step 2: Augment with Local Equibase File ---
-    local_races = parse_equibase_local_file('EquibaseToday.txt', today)
-    print(f"\nProcessing and merging {len(local_races)} races from local file...")
-    for race in local_races:
-        key = (normalize_track_name(race['course']), race['time'])
-        if key not in races_dict:
-            races_dict[key] = race
-            print(f"   -> Added new race from local file: {race['course']} {race['time']}")
-        else:
-            # Prioritize local file's field size as it's more reliable
-            print(f"   -> Updating field size for {race['course']} {race['time']} to {race['field_size']} from local file.")
-            races_dict[key]['field_size'] = race['field_size']
+                # Only add if it's not a North American race to avoid conflicts
+                if race.get('country') not in ['USA', 'CAN']:
+                    key = (normalize_track_name(race['course']), race['time'])
+                    if key not in races_dict:
+                        races_dict[key] = race
+                        print(f"   -> Added new race: {race['course']} {race['time']}")
+                    elif (new_size := race.get('field_size', 0)) > races_dict[key].get('field_size', 0):
+                        print(f"   -> Updating field size for {race['course']} {race['time']} to {new_size}")
+                        races_dict[key]['field_size'] = new_size
 
     master_race_list = list(races_dict.values())
     print(f"\nTotal unique races found for today: {len(master_race_list)}")

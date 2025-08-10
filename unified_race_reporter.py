@@ -53,8 +53,8 @@ def convert_utc_to_eastern(utc_dt_str: str) -> str:
         eastern_tz = ZoneInfo("America/New_York")
         eastern_dt = utc_dt.astimezone(eastern_tz)
 
-        # Format into a friendly string, e.g., "05:30 PM ET"
-        return eastern_dt.strftime('%I:%M %p ET')
+        # Format into a friendly string, e.g., "17h30"
+        return eastern_dt.strftime('%Hh%M')
 
     except (ValueError, TypeError):
         # Handle potential parsing errors
@@ -205,7 +205,7 @@ def generate_mode_A_report(races: list[dict]):
         for race in races:
             fav = race['favorite']
             sec_fav = race['second_favorite']
-            display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A')} (Timezone Unknown)"
+            display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
             html_body += f"""
             <div class="race-card">
                 <div class="race-header">{race['course']} ({race['country']}) - Race Time: {display_time}</div>
@@ -376,7 +376,7 @@ def generate_mode_B_report(races: list[dict]):
         for course, course_races in sorted(races_by_course.items()):
             html_body += f'<div class="course-group"><div class="course-header">{course}</div>'
             for race in sorted(course_races, key=lambda r: r.get('datetime_utc', r.get('time', ''))):
-                display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A')} (Timezone Unknown)"
+                display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
                 html_body += f'<div class="race-entry"><p class="race-details">Race at {display_time} ({race["field_size"]} runners)</p><div class="race-links">'
                 html_body += f'<a href="{race["race_url"]}" target="_blank" class="atr-link">ATR Racecard</a>'
 

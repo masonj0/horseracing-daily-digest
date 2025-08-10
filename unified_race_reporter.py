@@ -20,6 +20,7 @@ from urllib.parse import urljoin, urlparse
 # --- Third-Party Libraries ---
 import requests
 from bs4 import BeautifulSoup
+from curl_cffi.requests import Session as CurlCffiSession
 
 # --- Suppress SSL Warnings ---
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -29,6 +30,28 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 # ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
+
+def robust_fetch(url: str) -> str:
+    """
+    Attempts to fetch a URL using two methods: a standard request and a
+    browser-impersonating request via curl_cffi.
+    """
+    # Attempt 1: Standard "robot" request
+    try:
+        response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20, verify=False)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException:
+        print(f"   -> Standard request to {url} failed. Trying browser impersonation...")
+
+    # Attempt 2: "Browser" impersonation request
+    try:
+        session = CurlCffiSession(impersonate="chrome110")
+        response = session.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+        response.raise_for_status()
+        return response.text
+    except Exception as e:
+        raise ConnectionError(f"All fetch methods failed for {url}") from e
 
 def normalize_track_name(name: str) -> str:
     """Prepares a track name for reliable matching by lowercasing and stripping common suffixes."""
@@ -82,10 +105,8 @@ def universal_atr_scan(regions: list[str]):
         print(f"-> Querying {region.upper()} races from: {url}")
 
         try:
-            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
-            response.raise_for_status()
-            html_content = response.text
-        except requests.exceptions.RequestException as e:
+            html_content = robust_fetch(url)
+        except ConnectionError as e:
             print(f"   ❌ CRITICAL: Could not fetch data from AtTheRaces for region {region}. {e}")
             # Raise an exception to be caught by the main orchestrator.
             raise ConnectionError("Failed to connect to AtTheRaces.") from e
@@ -165,9 +186,9 @@ def generate_unified_report(races: list[dict]):
             self.session.headers.update({'User-Agent': 'Mozilla/5.0'})
         def fetch_data(self):
             try:
-                r = self.session.get(self.api_url, timeout=30, verify=False)
-                r.raise_for_status()
-                return r.json()
+                # Use robust_fetch for this call as well
+                json_text = robust_fetch(self.api_url)
+                return json.loads(json_text)
             except Exception: return None
         def process_meetings(self, data):
             if not isinstance(data, list): return []
@@ -303,10 +324,9 @@ def scrape_oddschecker():
     race_list_url = f"{base_url}/horse-racing"
 
     try:
-        response = requests.get(race_list_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-    except requests.exceptions.RequestException as e:
+        html_content = robust_fetch(race_list_url)
+        soup = BeautifulSoup(html_content, 'html.parser')
+    except ConnectionError as e:
         print(f"   ❌ Failed to fetch oddschecker race list: {e}")
         raise ConnectionError("Could not connect to oddschecker.com") from e
 
@@ -323,9 +343,8 @@ def scrape_oddschecker():
     for race_url in race_links[:20]: # Limit requests to avoid being blocked during testing
         try:
             print(f"   -> Scraping race: {race_url}")
-            race_page_res = requests.get(race_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
-            race_page_res.raise_for_status()
-            race_soup = BeautifulSoup(race_page_res.text, 'html.parser')
+            race_page_html = robust_fetch(race_url)
+            race_soup = BeautifulSoup(race_page_html, 'html.parser')
 
             # Extract course and time from URL
             parts = race_url.split('/')
@@ -393,11 +412,10 @@ def fetch_races_from_rpb2b_api():
 
     print(f"-> Querying API: {api_url}")
     try:
-        response = requests.get(api_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
-        response.raise_for_status()
-        api_data = response.json()
+        api_text = robust_fetch(api_url)
+        api_data = json.loads(api_text)
         print("   ✅ Success.")
-    except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
+    except (ConnectionError, json.JSONDecodeError) as e:
         print(f"   ❌ Failed to fetch from fallback API: {e}")
         return []
 
@@ -495,10 +513,9 @@ def scrape_sky_sports():
     race_list_url = f"{base_url}/racing/racecards"
 
     try:
-        response = requests.get(race_list_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-    except requests.exceptions.RequestException as e:
+        html_content = robust_fetch(race_list_url)
+        soup = BeautifulSoup(html_content, 'html.parser')
+    except ConnectionError as e:
         print(f"   ❌ Failed to fetch skysports.com: {e}")
         raise ConnectionError("Could not connect to skysports.com") from e
 

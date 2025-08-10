@@ -144,230 +144,93 @@ def universal_atr_scan(regions: list[str]):
 
 
 # ==============================================================================
-# MODE A: UNRESTRICTED WORKFLOW
+# UNIFIED REPORT GENERATION
 # ==============================================================================
 
-def convert_odds_to_float(odds_str: str) -> float:
+def generate_unified_report(races: list[dict]):
     """
-    Converts a fractional odds string (e.g., '5/2', 'EVS') to a float.
-    Returns a high number for invalid odds to ensure they are sorted last.
+    Generates a single, unified HTML report that intelligently displays all
+    available data for each race.
     """
-    if not isinstance(odds_str, str):
-        return 9999.0
+    # --- Part 1: Data Enrichment (Racing & Sports Links) ---
+    print("\n🗞️ Fetching data from Racing & Sports to find matching form guides...")
+    rs_api_url = "https://www.racingandsports.com.au/todays-racing-json-v2"
+    # Note: The R&S Fetcher and its helpers are now defined inside this function
+    # to keep them scoped, as they are only used here.
+    class RacingAndSportsFetcher:
+        def __init__(self, api_url):
+            self.api_url = api_url
+            self.session = requests.Session()
+            self.session.headers.update({'User-Agent': 'Mozilla/5.0'})
+        def fetch_data(self):
+            try:
+                r = self.session.get(self.api_url, timeout=30, verify=False)
+                r.raise_for_status()
+                return r.json()
+            except Exception: return None
+        def process_meetings(self, data):
+            if not isinstance(data, list): return []
+            meetings = []
+            for discipline in data:
+                for country in discipline.get("Countries", []):
+                    for meeting in country.get("Meetings", []):
+                        if meeting.get("Course") and (meeting.get("PDFUrl") or meeting.get("PreMeetingUrl")):
+                            meetings.append({'course': meeting["Course"], 'link': meeting.get("PDFUrl") or meeting.get("PreMeetingUrl")})
+            return meetings
 
-    odds_str = odds_str.strip().upper()
+    link_fetcher = RacingAndSportsFetcher(rs_api_url)
+    json_data = link_fetcher.fetch_data()
+    all_rs_meetings = link_fetcher.process_meetings(json_data) if json_data else []
 
-    if 'SP' in odds_str:
-        return 9999.0
-    if odds_str == 'EVS':
-        return 1.0
-
-    if '/' in odds_str:
-        try:
-            numerator, denominator = map(float, odds_str.split('/'))
-            if denominator == 0:
-                return 9999.0
-            return numerator / denominator
-        except (ValueError, IndexError):
-            return 9999.0
-
-    try:
-        return float(odds_str)
-    except ValueError:
-        return 9999.0
-
-
-def generate_mode_A_report(races: list[dict]):
-    """Generates the 'Perfect Tipsheet' HTML report."""
-    title = "Perfect Tipsheet"
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    filename = f"Perfect_Tipsheet_{timestamp}.html"
-
-    html_css = """<style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f0f4f8; color: #333; margin: 20px; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        h1 { color: #1a73e8; text-align: center; border-bottom: 3px solid #1a73e8; padding-bottom: 10px; }
-        .race-card { border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-left: 5px solid #1a73e8; background-color: #fff; border-radius: 8px; }
-        .race-header { font-size: 1.5em; font-weight: bold; color: #333; margin-bottom: 15px; }
-        .race-meta { font-size: 1.1em; color: #5f6368; margin-bottom: 15px; }
-        .horse-details { margin-top: 10px; padding: 10px; border-radius: 5px; background-color: #f8f9fa; }
-        .horse-details b { color: #1a73e8; }
-        .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #777; }
-    </style>"""
-
-    html_start = f'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>{title}</title>{html_css}</head><body><div class="container"><h1>{title}</h1>'
-    html_body = ""
-
-    if not races:
-        html_body += "<p>No races met the specified criteria of Field Size < 7, Favorite >= 1/1, and 2nd Favorite >= 3/1.</p>"
-    else:
-        html_body += f"<p>Found {len(races)} races that meet all analytical criteria.</p>"
-        for race in races:
-            fav = race['favorite']
-            sec_fav = race['second_favorite']
-            display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
-            html_body += f"""
-            <div class="race-card">
-                <div class="race-header">{race['course']} ({race['country']}) - Race Time: {display_time}</div>
-                <div class="race-meta">Field Size: {race['field_size']} Runners</div>
-                <div class="horse-details"><b>Favorite:</b> {fav['name']} (<b>{fav['odds_str']}</b>)</div>
-                <div class="horse-details"><b>2nd Favorite:</b> {sec_fav['name']} (<b>{sec_fav['odds_str']}</b>)</div>
-            </div>
-            """
-
-    report_time = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
-    html_end = f'<div class="footer"><p>Report generated on {report_time}</p></div></div></body></html>'
-    final_html = html_start + html_body + html_end
-
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(final_html)
-        print(f"\n🎉 SUCCESS! Report generated: {os.path.abspath(filename)}")
-    except Exception as e:
-        print(f"\n❌ Error saving the report: {e}")
-
-def run_mode_A(master_race_list: list[dict]):
-    """
-    Filters the rich master list from ATR to find races meeting the criteria
-    and generates the 'Perfect Tipsheet' report.
-    """
-    print("🔍 Filtering global race list for analytical matches...")
-
-    perfect_tips = []
-    for race in master_race_list:
-        field_size_ok = race['field_size'] < 7
-        fav = race.get('favorite')
-        sec_fav = race.get('second_favorite')
-
-        if not (fav and sec_fav):
-            continue
-
-        fav_odds_ok = fav['odds_float'] >= 1.0
-        sec_fav_odds_ok = sec_fav['odds_float'] >= 3.0
-
-        if field_size_ok and fav_odds_ok and sec_fav_odds_ok:
-            perfect_tips.append(race)
-            print(f"   ✅ MATCH: {race['course']} ({race['country']}) at {race['time']}")
-
-    generate_mode_A_report(perfect_tips)
-
-# ==============================================================================
-# MODE B: RESTRICTED WORKFLOW
-# ==============================================================================
-
-class RacingAndSportsFetcher:
-    """
-    Fetches and processes meeting data from the Racing & Sports JSON endpoint.
-    """
-    def __init__(self, api_url):
-        self.api_url = api_url
-        self.session = requests.Session()
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Referer': 'https://www.racingandsports.com.au/todays-racing',
-        }
-        self.session.headers.update(headers)
-
-    def fetch_data(self):
-        """Fetches the main JSON directory of all meetings."""
-        print("-> Fetching R&S main meeting directory...")
-        try:
-            response = self.session.get(self.api_url, timeout=30, verify=False)
-            response.raise_for_status()
-            return response.json()
-        except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
-            print(f"   ❌ ERROR: Could not fetch R&S JSON directory: {e}")
-        return None
-
-    def process_meetings_data(self, json_data):
-        """Processes the main JSON data to get a list of all meetings."""
-        if not isinstance(json_data, list):
-            return None
-
-        processed_meetings = []
-        for discipline_data in json_data:
-            for country_data in discipline_data.get("Countries", []):
-                for meeting_data in country_data.get("Meetings", []):
-                    course_name = meeting_data.get("Course")
-                    final_link = meeting_data.get("PDFUrl") or meeting_data.get("PreMeetingUrl")
-
-                    if course_name and final_link:
-                        processed_meetings.append({
-                            'course': course_name,
-                            'link': final_link,
-                        })
-        return processed_meetings
-
-def build_rs_lookup_table(rs_meetings):
-    """
-    Processes R&S data into a lookup table.
-    Key: (normalized_track_name, date_YYYY-MM-DD), Value: R&S meeting link.
-    """
-    lookup = {}
-    if not rs_meetings: return lookup
-
-    print("...Building Racing & Sports lookup table for matching...")
-    for meeting in rs_meetings:
+    # Build a lookup table from the R&S data
+    rs_lookup_table = {}
+    for meeting in all_rs_meetings:
         link = meeting.get('link')
         match = re.search(r'/(\d{4}-\d{2}-\d{2})', link)
-        if not match: continue
+        if match:
+            rs_lookup_table[(normalize_track_name(meeting['course']), match.group(1))] = link
+    print(f"   ✅ R&S lookup table created with {len(rs_lookup_table)} entries.")
 
-        date_str = match.group(1)
-        normalized_course = normalize_track_name(meeting['course'])
-        lookup[(normalized_course, date_str)] = link
+    # Enrich the main race list with R&S links
+    print("\n🔗 Attempting to match all races with R&S links...")
+    for race in races:
+        try:
+            date_str_iso = re.search(r'(\d{4}-\d{2}-\d{2})', race['race_url']).group(1)
+            key = (normalize_track_name(race['course']), date_str_iso)
+            if key in rs_lookup_table:
+                race['rs_link'] = rs_lookup_table[key]
+        except (AttributeError, KeyError):
+            continue # Don't add a link if we can't find one
 
-    print(f"   ✅ Lookup table created with {len(lookup)} R&S entries.")
-    return lookup
-
-def find_rs_link(race_course: str, race_url: str, lookup_table: dict):
-    """
-    Finds a matching R&S meeting link using the lookup table with flexibility.
-    """
-    try:
-        date_str_iso = re.search(r'/(\d{4}-\d{2}-\d{2})', race_url).group(1)
-    except AttributeError:
-        return None # Cannot find a date in the URL to match on.
-
-    normalized_sky_track = normalize_track_name(race_course)
-
-    direct_key = (normalized_sky_track, date_str_iso)
-    if direct_key in lookup_table:
-        return lookup_table[direct_key]
-
-    for (rs_track_normalized, rs_date), rs_link in lookup_table.items():
-        if rs_date == date_str_iso:
-            if normalized_sky_track in rs_track_normalized or rs_track_normalized in normalized_sky_track:
-                return rs_link
-
-    return None
-
-def generate_mode_B_report(races: list[dict]):
-    """Generates the 'Actionable Link List' HTML report."""
-    title = "Upcoming Small-Field Races"
+    # --- Part 2: HTML Report Generation ---
+    print("\n📄 Generating unified HTML report...")
+    title = "Global Racing Digest"
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    filename = f"Actionable_Link_List_{timestamp}.html"
+    filename = f"Global_Racing_Digest_{timestamp}.html"
 
     html_css = """<style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f4f9; color: #333; margin: 20px; }
-        .container { max-width: 900px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1 { color: #5a2d82; text-align: center; border-bottom: 3px solid #5a2d82; padding-bottom: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; color: #212529; margin: 20px; }
+        .container { max-width: 1000px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        h1 { color: #343a40; text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 15px; }
         .course-group { margin-bottom: 30px; }
-        .course-header { font-size: 1.6em; font-weight: bold; color: #333; padding-bottom: 10px; border-bottom: 2px solid #eee; margin-bottom: 15px; }
-        .race-entry { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: #fafafa; }
-        .race-details { font-weight: bold; font-size: 1.1em; color: #333; margin-bottom: 10px; }
+        .course-header { font-size: 1.8em; font-weight: bold; color: #495057; padding-bottom: 10px; border-bottom: 1px solid #e9ecef; margin-bottom: 15px; }
+        .race-entry { border: 1px solid #dee2e6; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: #fff; }
+        .race-entry.analytical-match { border-left: 5px solid #28a745; }
+        .race-details { font-weight: bold; font-size: 1.1em; color: #343a40; margin-bottom: 10px; }
         .race-links a, .race-links span { display: inline-block; text-decoration: none; padding: 8px 15px; border-radius: 4px; margin: 5px 10px 5px 0; font-weight: bold; min-width: 160px; text-align: center; }
         a.atr-link { background-color: #007bff; color: white; } a.atr-link:hover { background-color: #0056b3; }
         a.rs-link { background-color: #dc3545; color: white; } a.rs-link:hover { background-color: #c82333; }
         span.rs-ignored-tag { color: #6c757d; background-color: #fff; border: 1px solid #ccc; cursor: default; }
-        .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #777; }
+        .odds-info { background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; margin-top: 10px; border-radius: 4px; }
+        .match-highlight { color: #28a745; font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #6c757d; }
     </style>"""
 
     html_start = f'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>{title}</title>{html_css}</head><body><div class="container"><h1>{title}</h1>'
     html_body = ""
 
     if not races:
-        html_body += "<p>No races with fewer than 7 runners were found from the fallback data source.</p>"
+        html_body += "<h3>No races found from any data source.</h3>"
     else:
         races_by_course = {}
         for race in races:
@@ -377,15 +240,42 @@ def generate_mode_B_report(races: list[dict]):
             html_body += f'<div class="course-group"><div class="course-header">{course}</div>'
             for race in sorted(course_races, key=lambda r: r.get('datetime_utc', r.get('time', ''))):
                 display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
-                html_body += f'<div class="race-entry"><p class="race-details">Race at {display_time} ({race["field_size"]} runners)</p><div class="race-links">'
-                html_body += f'<a href="{race["race_url"]}" target="_blank" class="atr-link">ATR Racecard</a>'
 
-                if race.get("rs_link"):
-                    html_body += f'<a href="{race["rs_link"]}" target="_blank" class="rs-link">R&S Meeting Form</a>'
+                # Check for analytical match
+                is_match = False
+                if race.get('favorite'):
+                    field_size_ok = race['field_size'] < 7
+                    fav_odds_ok = race['favorite']['odds_float'] >= 1.0
+                    sec_fav = race.get('second_favorite')
+                    sec_fav_odds_ok = sec_fav and sec_fav['odds_float'] >= 3.0
+                    if field_size_ok and fav_odds_ok and sec_fav_odds_ok:
+                        is_match = True
+
+                match_class = "analytical-match" if is_match else ""
+                html_body += f'<div class="race-entry {match_class}">'
+                html_body += f'<p class="race-details">Race at {display_time} ({race["field_size"]} runners)</p>'
+
+                # Render based on available data
+                if race.get('favorite'):
+                    fav = race['favorite']
+                    sec_fav = race.get('second_favorite')
+                    html_body += '<div class="odds-info">'
+                    if is_match:
+                        html_body += '<p class="match-highlight">⭐ Analytical Match Found!</p>'
+                    html_body += f"<b>Favorite:</b> {fav['name']} (<b>{fav['odds_str']}</b>)<br>"
+                    if sec_fav:
+                        html_body += f"<b>2nd Favorite:</b> {sec_fav['name']} (<b>{sec_fav['odds_str']}</b>)"
+                    html_body += '</div>'
                 else:
-                    html_body += '<span class="rs-ignored-tag">Ignored by R&S</span>'
+                    html_body += '<div class="race-links">'
+                    html_body += f'<a href="{race["race_url"]}" target="_blank" class="atr-link">Racecard Link</a>'
+                    if race.get("rs_link"):
+                        html_body += f'<a href="{race["rs_link"]}" target="_blank" class="rs-link">R&S Form</a>'
+                    else:
+                        html_body += '<span class="rs-ignored-tag">No R&S Form</span>'
+                    html_body += '</div>'
 
-                html_body += '</div></div>'
+                html_body += '</div>'
             html_body += '</div>'
 
     report_time = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
@@ -395,40 +285,9 @@ def generate_mode_B_report(races: list[dict]):
     try:
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(final_html)
-        print(f"\n🎉 SUCCESS! Report generated: {os.path.abspath(filename)}")
+        print(f"\n🎉 SUCCESS! Unified report generated: {os.path.abspath(filename)}")
     except Exception as e:
         print(f"\n❌ Error saving the report: {e}")
-
-def run_mode_B(master_race_list: list[dict]):
-    """
-    Executes the full workflow for restricted mode using fallback data.
-    """
-    small_field_races = [r for r in master_race_list if r['field_size'] < 7]
-    print(f"Found {len(small_field_races)} races with fewer than 7 runners from fallback source.")
-
-    if not small_field_races:
-        print("No small-field races to generate a report for.")
-        generate_mode_B_report([])
-        return
-
-    print("\n🗞️ Fetching data from Racing & Sports to find matching form guides...")
-    rs_api_url = "https://www.racingandsports.com.au/todays-racing-json-v2"
-    link_fetcher = RacingAndSportsFetcher(rs_api_url)
-    json_data = link_fetcher.fetch_data()
-    all_rs_meetings = link_fetcher.process_meetings_data(json_data) if json_data else []
-    rs_lookup_table = build_rs_lookup_table(all_rs_meetings)
-
-    print("\n🔗 Attempting to match all races with R&S links...")
-    enriched_races = []
-    for race in small_field_races:
-        rs_link = find_rs_link(race['course'], race['race_url'], rs_lookup_table)
-        if rs_link:
-            race['rs_link'] = rs_link
-            print(f"   -> {race['course']} @ {race['time']}: R&S Link FOUND")
-
-        enriched_races.append(race)
-
-    generate_mode_B_report(enriched_races)
 
 # ==============================================================================
 # FALLBACK DATA SOURCE #1: ODDSCHECKER
@@ -573,25 +432,20 @@ def fetch_races_from_rpb2b_api():
     return fallback_race_list
 
 # ==============================================================================
-# MAIN ORCHESTRATION
+# DATA FETCHING ORCHESTRATION
 # ==============================================================================
-
-def main():
-    """The main orchestration function with a graceful fallback chain."""
-    print("=" * 80)
-    print("🚀 Unified Racing Report Generator")
-    print("=" * 80)
-
+def get_best_available_races():
+    """
+    Attempts to fetch race data from the best available source in a specific order.
+    Implements a graceful fallback chain.
+    """
     # --- Attempt 1: Primary API (AtTheRaces) ---
     try:
         print("\n--- Attempting Primary Source: AtTheRaces API ---")
         atr_regions = ['uk', 'ireland', 'usa', 'france', 'saf', 'aus']
         master_race_list = universal_atr_scan(atr_regions)
-
-        print("\n✅ Primary source successful. Running in Unrestricted Mode.")
-        run_mode_A(master_race_list)
-        print("\n🏁 Report generation process complete.")
-        return
+        print("\n✅ Primary source successful. Using rich data from AtTheRaces.")
+        return master_race_list
     except ConnectionError as e:
         print(f"\n⚠️ {e} Moving to fallback source #1.")
 
@@ -600,11 +454,8 @@ def main():
         print("\n--- Attempting Fallback Source #1: Oddschecker Scraper ---")
         master_race_list = scrape_oddschecker()
         if not master_race_list: raise ConnectionError("Oddschecker returned no data.")
-
-        print("\n✅ Oddschecker scrape successful. Running in Restricted Mode.")
-        run_mode_B(master_race_list)
-        print("\n🏁 Report generation process complete.")
-        return
+        print("\n✅ Oddschecker scrape successful. Using global data (no live odds).")
+        return master_race_list
     except ConnectionError as e:
         print(f"\n⚠️ {e} Moving to final fallback source.")
 
@@ -613,15 +464,36 @@ def main():
         print("\n--- Attempting Final Fallback Source #2: rpb2b.com API ---")
         master_race_list = fetch_races_from_rpb2b_api()
         if not master_race_list: raise ConnectionError("rpb2b.com API returned no data.")
-
-        print("\n✅ Final fallback successful. Running in Restricted Mode (NA only).")
-        run_mode_B(master_race_list)
-        print("\n🏁 Report generation process complete.")
-        return
+        print("\n✅ Final fallback successful. Using NA-only data.")
+        return master_race_list
     except Exception as e:
         print(f"\n❌ All data sources failed. Could not retrieve any data. {e}")
 
-    print("\n🏁 Script finished: All data sources were unavailable.")
+    return [] # Return an empty list if all sources fail
+
+# ==============================================================================
+# MAIN EXECUTION
+# ==============================================================================
+
+def main():
+    """
+    Main execution block.
+    Fetches the best available race data and generates the unified report.
+    """
+    print("=" * 80)
+    print("🚀 Unified Racing Report Generator")
+    print("=" * 80)
+
+    # Get the best possible list of races using the fallback chain
+    master_race_list = get_best_available_races()
+
+    # Generate the single, unified report
+    if master_race_list:
+        generate_unified_report(master_race_list)
+    else:
+        print("\n❌ Could not retrieve data from any source. Exiting.")
+
+    print("\n🏁 Script finished.")
 
 
 if __name__ == "__main__":

@@ -500,11 +500,22 @@ class AtTheRacesSource(DataSourceBase):
                 for region in self.REGIONS
             ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
+            any_added = False
             for res in results:
                 if isinstance(res, list):
+                    if res:
+                        any_added = True
                     out.extend(res)
                 elif isinstance(res, Exception):
                     logging.debug(f"ATR region fetch error: {res}")
+            # Fallback if marketmovers produced nothing for this date
+            if not any_added:
+                try:
+                    fallback = await self._fallback_racecards_date(dt)
+                    if fallback:
+                        out.extend(fallback)
+                except Exception as e:
+                    logging.debug(f"ATR fallback error for {dt.date()}: {e}")
         return out
 
     async def _fetch_region(self, url: str, region: str, dt: datetime) -> List[RaceData]:
@@ -574,6 +585,75 @@ class AtTheRacesSource(DataSourceBase):
             )
         except Exception as e:
             logging.warning(f"ATR parse error: {e}")
+            return None
+
+    async def _fallback_racecards_date(self, dt: datetime) -> List[RaceData]:
+        # Fetch generic date page and parse individual race links
+        date_str = dt.strftime("%Y-%m-%d")
+        index_url = f"https://www.attheraces.com/racecards/{date_str}"
+        html = await self.http_client.fetch(index_url)
+        if not html:
+            return []
+        soup = BeautifulSoup(html, "html.parser")
+        race_links: List[str] = []
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if re.match(r"^/racecard/[a-z0-9\-]+/\d{4}-\d{2}-\d{2}/\d{3,4}$", href):
+                race_links.append(urljoin("https://www.attheraces.com", href))
+        # Deduplicate and limit to be polite
+        uniq_links = sorted(set(race_links))[:80]
+        results = await asyncio.gather(*[self._fallback_parse_race(url) for url in uniq_links])
+        return [r for r in results if r]
+
+    async def _fallback_parse_race(self, url: str) -> Optional[RaceData]:
+        html = await self.http_client.fetch(url)
+        if not html:
+            return None
+        try:
+            m = re.search(r"/racecard/([a-z0-9\-]+)/([\d\-]+)/([0-9]{3,4})$", url)
+            if not m:
+                return None
+            course_slug, date_str, hhmm = m.groups()
+            course_name = course_slug.replace("-", " ").title()
+            race_time = ("0" * (4 - len(hhmm)) + hhmm)
+            race_time = f"{race_time[:2]}:{race_time[2:]}"
+            soup = BeautifulSoup(html, "html.parser")
+            # Count runner rows from table(s)
+            runners: List[Dict[str, Any]] = []
+            for table in soup.find_all("table"):
+                for tr in table.find_all("tr"):
+                    cells = tr.find_all(["td", "th"])
+                    if len(cells) >= 2 and cells[0].get_text(strip=True) and cells[1].get_text(strip=True):
+                        name = cells[1].get_text(strip=True)
+                        if name:
+                            runners.append({"name": name, "odds_str": ""})
+            # Cap plausible field size; discard if out of range
+            if len(runners) < 3 or len(runners) > 20:
+                return None
+            tz_name = self._track_tz(course_name, "GB")
+            local_tz = ZoneInfo(tz_name)
+            local_dt = datetime.combine(datetime.fromisoformat(date_str).date(), datetime.strptime(race_time, "%H:%M").time()).replace(tzinfo=local_tz)
+            return RaceData(
+                id=self._race_id(course_name, date_str, race_time),
+                course=course_name,
+                race_time=race_time,
+                utc_datetime=local_dt.astimezone(ZoneInfo("UTC")),
+                local_time=local_dt.strftime("%H:%M"),
+                timezone_name=tz_name,
+                field_size=len(runners),
+                country="GB",
+                discipline="thoroughbred",
+                race_number=None,
+                grade=None,
+                distance=None,
+                surface=None,
+                favorite=None,
+                second_favorite=None,
+                all_runners=runners,
+                race_url=url,
+                data_sources={"course": "ATR", "runners": "ATR"},
+            )
+        except Exception:
             return None
 
 class SkySportsSource(DataSourceBase):

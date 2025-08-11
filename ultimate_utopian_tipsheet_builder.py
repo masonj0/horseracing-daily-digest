@@ -315,8 +315,12 @@ def generate_unified_report(races: list[dict]):
         h1 { color: #343a40; text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 15px; }
         .race-entry { border: 1px solid #dee2e6; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: #fff; }
         .race-entry.analytical-match { border-left: 5px solid #28a745; }
-        .race-details { font-weight: bold; font-size: 1.1em; color: #343a40; margin-bottom: 10px; }
+        .race-details { font-weight: bold; font-size: 1.1em; color: #343a40; margin-bottom: 10px; display: flex; align-items: center; }
         .race-details .course-name { font-size: 1.2em; color: #495057; }
+        .race-type-icon { display: inline-block; width: 24px; height: 24px; border-radius: 50%; color: white; text-align: center; font-weight: bold; line-height: 24px; margin-right: 10px; font-size: 0.9em; }
+        .thoroughbred { background-color: #007bff; }
+        .greyhound { background-color: #6c757d; }
+        .harness { background-color: #28a745; }
         .race-links a, .race-links span { display: inline-block; text-decoration: none; padding: 8px 15px; border-radius: 4px; margin: 5px 10px 5px 0; font-weight: bold; min-width: 160px; text-align: center; }
         a.racecard-link { background-color: #17a2b8; color: white; }
         a.racecard-link:hover { background-color: #138496; }
@@ -345,17 +349,22 @@ def generate_unified_report(races: list[dict]):
         for race in sorted_races:
             display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
 
-            race_type = race.get('race_type', 'Horse') # Default to Horse
+            race_type = race.get('race_type', 'Horse')
             if race_type == 'Horse':
-                race_icon = "🐎"
+                race_letter = "T"
+                race_class = "thoroughbred"
             elif race_type == 'Greyhound':
-                race_icon = "🐕"
+                race_letter = "G"
+                race_class = "greyhound"
             elif race_type == 'Harness':
-                race_icon = "🤸"
+                race_letter = "H"
+                race_class = "harness"
             else:
-                race_icon = "🏁"
+                race_letter = "?"
+                race_class = "unknown"
 
-            course_details = f"{race_icon} {race['course']} ({race['country']})"
+            race_icon = f'<span class="race-type-icon {race_class}">{race_letter}</span>'
+            course_details = f"{race_icon} <span class='course-name'>{race['course']} ({race['country']})</span>"
 
             # Check for analytical match
             is_match = False

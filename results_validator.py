@@ -5,10 +5,16 @@ import csv
 import json
 import math
 import os
-from dataclasses import dataclass, asdict
+import re
+import time
+from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from glob import glob
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
+
+import requests
+from bs4 import BeautifulSoup
+from curl_cffi.requests import Session as CurlCffiSession
 
 
 @dataclass
@@ -36,7 +42,15 @@ class RaceResult:
     fav_fractional: Optional[float]
     second_fav_fractional: Optional[float]
     odds_ratio_second_over_fav: Optional[float]
+    # Exotic payouts (best-effort; currency-preserving strings)
+    csf: Optional[str] = None
+    tricast: Optional[str] = None
+    exacta: Optional[str] = None
+    trifecta: Optional[str] = None
+    superfecta: Optional[str] = None
 
+
+# --------------------------- Helpers ---------------------------
 
 def safe_int(value: Any) -> Optional[int]:
     if value is None:
@@ -68,7 +82,6 @@ def parse_main_csv(path: str) -> List[Dict[str, Any]]:
     with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            # Normalize keys and strip values
             normalized = { (k or "").strip(): (v or "").strip() for k, v in row.items() }
             rows.append(normalized)
     return rows
@@ -99,18 +112,18 @@ def build_runner(row: Dict[str, Any]) -> RunnerResult:
 
 
 def parse_date(date_str: str) -> Optional[datetime]:
-    # Expected like 10-Mar-25
     try:
         return datetime.strptime(date_str.strip(), "%d-%b-%y")
     except Exception:
         return None
 
 
+# --------------------------- Core processing ---------------------------
+
 def process_pair(main_path: str, details_path: str) -> List[RaceResult]:
     main_rows = parse_main_csv(main_path)
     details_rows = parse_details_csv(details_path)
 
-    # Index details by MainID (-> main Id)
     details_by_main: Dict[str, List[Dict[str, Any]]] = {}
     for d in details_rows:
         mid = d.get("MainID", "").strip()
@@ -129,14 +142,12 @@ def process_pair(main_path: str, details_path: str) -> List[RaceResult]:
         runners_raw = details_by_main.get(main_id, [])
         runners: List[RunnerResult] = [build_runner(r) for r in runners_raw]
 
-        # Identify winner
         winner: Optional[RunnerResult] = None
         for r in runners:
             if (r.finishing_pos or "").strip() in {"1", "1st"}:
                 winner = r
                 break
 
-        # Favorite and second favorite by Favs label
         favorite = next((r for r in runners if r.fav_label and r.fav_label.lower().startswith("fav")), None)
         second_favorite = next((r for r in runners if r.fav_label and r.fav_label.lower().startswith("2fav")), None)
 
@@ -148,7 +159,6 @@ def process_pair(main_path: str, details_path: str) -> List[RaceResult]:
 
         winner_return = None
         if winner and winner.sp_fractional is not None:
-            # UK fractional payout on 1 unit stake = profit + stake = (f + 1)
             winner_return = winner.sp_fractional + 1.0
 
         results.append(RaceResult(
@@ -170,19 +180,149 @@ def process_pair(main_path: str, details_path: str) -> List[RaceResult]:
     return results
 
 
+# --------------------------- Enrichment (Sky Sports) ---------------------------
+
+def slugify_course_for_sky(name: str) -> str:
+    s = name.strip().lower()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    return s
+
+
+def fetch_html(url: str) -> Optional[str]:
+    try:
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20, verify=False)
+        r.raise_for_status()
+        return r.text
+    except Exception:
+        pass
+    try:
+        sess = CurlCffiSession(impersonate="chrome110")
+        r = sess.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+        r.raise_for_status()
+        return r.text
+    except Exception:
+        return None
+
+
+EXOTIC_LABELS = [
+    "CSF", "Tricast", "Trifecta", "Exacta", "Superfecta", "Tote Exacta", "Tote Trifecta"
+]
+
+EXOTIC_REGEX = re.compile(r"(CSF|Tricast|Trifecta|Exacta|Superfecta|Tote Exacta|Tote Trifecta)\s*[:\-]?\s*([£$€]?[\d,.]+)", re.IGNORECASE)
+
+
+def _parse_exotics_from_html_into(html: str, race: RaceResult) -> bool:
+    soup_local = BeautifulSoup(html, "html.parser")
+    found_local = False
+    text_local = soup_local.get_text(" ", strip=True)
+    for match in EXOTIC_REGEX.finditer(text_local):
+        label = match.group(1).lower()
+        amount = match.group(2)
+        if "csf" in label:
+            race.csf = amount
+            found_local = True
+        elif "tricast" in label and not "trifecta" in label:
+            race.tricast = amount
+            found_local = True
+        elif "trifecta" in label:
+            race.trifecta = amount
+            found_local = True
+        elif "exacta" in label:
+            race.exacta = amount
+            found_local = True
+        elif "superfecta" in label:
+            race.superfecta = amount
+            found_local = True
+    return found_local
+
+
+def try_enrich_from_sky(race: RaceResult) -> bool:
+    # Build Sky results URL: https://www.skysports.com/racing/results/YYYY-MM-DD/{course-slug}/{HHMM}
+    dt = parse_date(race.date_str)
+    if not dt:
+        return False
+    hhmm = re.sub(r":", "", race.time_str).strip()
+    if not hhmm or not hhmm.isdigit():
+        return False
+    course_slug = slugify_course_for_sky(race.course)
+
+    # Attempt 1: Direct race URL by hhmm
+    url_direct = f"https://www.skysports.com/racing/results/{dt.strftime('%Y-%m-%d')}/{course_slug}/{hhmm}"
+    html = fetch_html(url_direct)
+    if html and _parse_exotics_from_html_into(html, race):
+        return True
+
+    # Attempt 2: Meeting page -> find the race link
+    url_meeting = f"https://www.skysports.com/racing/results/{dt.strftime('%Y-%m-%d')}/{course_slug}"
+    meeting_html = fetch_html(url_meeting)
+    if not meeting_html:
+        return False
+    soup = BeautifulSoup(meeting_html, "html.parser")
+
+    time_slug = hhmm
+    candidate_link = None
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        if f"/{time_slug}" in href and "/racing/results/" in href:
+            candidate_link = href if href.startswith("http") else f"https://www.skysports.com{href}"
+            break
+    if candidate_link:
+        page_html = fetch_html(candidate_link)
+        if page_html and _parse_exotics_from_html_into(page_html, race):
+            return True
+
+    return False
+
+
+def slugify_course_for_atr(name: str) -> str:
+    return re.sub(r"\s+", "-", name.strip().lower())
+
+
+def try_enrich_from_atr(race: RaceResult) -> bool:
+    dt = parse_date(race.date_str)
+    if not dt:
+        return False
+    hhmm = re.sub(r":", "", race.time_str).strip()
+    if not hhmm or not hhmm.isdigit():
+        return False
+    course_slug = slugify_course_for_atr(race.course)
+    url = f"https://www.attheraces.com/racecard/{course_slug}/{dt.strftime('%Y-%m-%d')}/{hhmm}/results"
+    html = fetch_html(url)
+    if not html:
+        return False
+    return _parse_exotics_from_html_into(html, race)
+
+
+def enrich_exotics(races: List[RaceResult], max_to_fetch: Optional[int] = None, sleep_seconds: float = 0.5) -> int:
+    enriched = 0
+    count = 0
+    for r in races:
+        if max_to_fetch is not None and count >= max_to_fetch:
+            break
+        ok = try_enrich_from_sky(r)
+        if not ok:
+            ok = try_enrich_from_atr(r)
+        if ok:
+            enriched += 1
+        count += 1
+        if sleep_seconds:
+            time.sleep(sleep_seconds)
+    return enriched
+
+
+# --------------------------- Filtering and outputs ---------------------------
+
 def filter_races(races: List[RaceResult], max_field_size: int, min_fav_fractional: float) -> List[RaceResult]:
     filtered: List[RaceResult] = []
     for r in races:
         if r.field_size <= max_field_size:
-            # If we cannot determine favorite odds, keep it (conservative) or skip?
-            # Keep it to avoid false negatives.
             if r.fav_fractional is None or r.fav_fractional >= min_fav_fractional:
                 filtered.append(r)
     return filtered
 
 
 def write_outputs(races_all: List[RaceResult], races_filtered: List[RaceResult], out_prefix: str) -> None:
-    # JSON
     payload = {
         "total_races": len(races_all),
         "filtered_races": len(races_filtered),
@@ -196,7 +336,6 @@ def write_outputs(races_all: List[RaceResult], races_filtered: List[RaceResult],
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
-    # CSV (matches only)
     csv_path = f"{out_prefix}.csv"
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
@@ -204,6 +343,8 @@ def write_outputs(races_all: List[RaceResult], races_filtered: List[RaceResult],
             "source_file", "date", "time", "course", "race_desc", "field_size",
             "favorite", "fav_fractional", "second_favorite", "second_fav_fractional",
             "odds_ratio_second_over_fav", "winner", "winner_fractional", "winner_return_on_1",
+            # exotic payouts
+            "csf", "tricast", "exacta", "trifecta", "superfecta",
         ])
         for r in races_filtered:
             writer.writerow([
@@ -221,17 +362,27 @@ def write_outputs(races_all: List[RaceResult], races_filtered: List[RaceResult],
                 r.winner.horse_name if r.winner else "",
                 f"{r.winner.sp_fractional:.2f}" if (r.winner and isinstance(r.winner.sp_fractional, float)) else "",
                 f"{r.winner_return_on_1:.2f}" if isinstance(r.winner_return_on_1, float) else "",
+                r.csf or "",
+                r.tricast or "",
+                r.exacta or "",
+                r.trifecta or "",
+                r.superfecta or "",
             ])
 
     print(f"Wrote: {json_path} and {csv_path}")
 
 
+# --------------------------- CLI ---------------------------
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate tipsheet against historical results (small fields, no chalk favorites)")
+    parser = argparse.ArgumentParser(description="Validate tipsheet against historical results with exotic payouts")
     parser.add_argument("--dir", default="/workspace/old_results", help="Directory containing *Main.csv and *Details.csv pairs")
     parser.add_argument("--max-field-size", type=int, default=7, help="Maximum field size to consider a small field")
     parser.add_argument("--min-fav-fractional", type=float, default=1.0, help="Minimum favorite fractional odds (e.g., 1.0 = EVS) to exclude chalk")
     parser.add_argument("--out-prefix", default="results_validation", help="Output file prefix for JSON and CSV")
+    parser.add_argument("--enrich-exotics", action="store_true", help="Fetch exotic payouts from Sky Sports results pages")
+    parser.add_argument("--enrich-limit", type=int, default=None, help="Limit number of races to enrich (for speed/rate limiting)")
+    parser.add_argument("--enrich-sleep", type=float, default=0.5, help="Sleep seconds between enrichment fetches")
 
     args = parser.parse_args()
 
@@ -252,6 +403,11 @@ def main() -> None:
             all_results.extend(pair_results)
         except Exception as e:
             print(f"Failed processing {main_path}: {e}")
+
+    if args.enrich_exotics:
+        print("Enriching exotic payouts from Sky Sports...")
+        enriched_count = enrich_exotics(all_results, max_to_fetch=args.enrich_limit, sleep_seconds=args.enrich_sleep)
+        print(f"Enriched races: {enriched_count}")
 
     filtered = filter_races(all_results, args.max_field_size, args.min_fav_fractional)
 

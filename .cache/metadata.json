@@ -1,21 +1,21 @@
 {
   "57090aff05778286dbf994d6": {
     "url": "https://www.skysports.com/racing/racecards",
-    "cached_at": "2025-08-11T20:17:19.494232",
-    "expires": 1754943610.494249,
+    "cached_at": "2025-08-11T20:26:17.064465",
+    "expires": 1754944037.064472,
     "headers": {
       "content-type": "text/html; charset=UTF-8",
-      "cache-control": "public, max-age=171, s-maxage=180"
+      "cache-control": "public, max-age=38, s-maxage=180"
     }
   },
   "6a9cd5abd298f79ac5a6ca63": {
     "url": "https://www.sportinglife.com/greyhounds/racecards",
-    "cached_at": "2025-08-11T20:17:19.627568",
-    "expires": 1754943499.627573,
+    "cached_at": "2025-08-11T20:26:17.513516",
+    "expires": 1754944037.513522,
     "headers": {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "public, max-age=1",
-      "etag": "\"cpibca93cf4q62\""
+      "etag": "\"waa401vcm4qag\""
     }
   },
   "ce503e757c8e4905b1aa955d": {
@@ -44,8 +44,8 @@
   },
   "15cfbcb6060e2aea510cef76": {
     "url": "https://www.skysports.com/racing/racecards/12-08-2025",
-    "cached_at": "2025-08-11T20:17:20.946269",
-    "expires": 1754943740.946273,
+    "cached_at": "2025-08-11T20:26:17.419961",
+    "expires": 1754944277.419968,
     "headers": {
       "content-type": "text/html; charset=UTF-8",
       "cache-control": "public, max-age=300, s-maxage=300"

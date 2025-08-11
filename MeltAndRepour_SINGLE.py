@@ -768,9 +768,11 @@ class HarnessRacingAustraliaSource(DataSourceBase):
                 continue
             soup = BeautifulSoup(html, "html.parser")
             race_links = set()
-            for a in soup.find_all("a", href=re.compile(r"/racing/fields/.*(meeting|race)")):
-                # PATCHED: Strip fragments before fetching race URLs
-                href = a["href"].split('#', 1)[0]
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if not re.search(r"/racing/fields/race-fields", href):
+                    continue
+                href = href.split('#', 1)[0]
                 race_links.add(urljoin(self.BASE, href))
             tasks = [self._parse_race(r_url, dt) for r_url in sorted(list(race_links))]
             results = await asyncio.gather(*tasks)
@@ -788,25 +790,39 @@ class HarnessRacingAustraliaSource(DataSourceBase):
         if not (race_time := parse_local_hhmm(soup.get_text(" ", strip=True))):
             return None
 
-        # Hardened parsing: Look for specific tables/lists of runners
-        runners_table = soup.find("table", class_=re.compile("field", re.I))
+        # Hardened parsing: Only accept rows from proper field tables; no generic LI fallback
+        runners_table = soup.find("table", class_=re.compile("field|runner|accept", re.I))
+        runners: List[str] = []
         if runners_table:
-            runners = [
-                tds[1].get_text(strip=True)
-                for tr in runners_table.find_all("tr")
-                if (tds := tr.find_all("td")) and len(tds) > 2 and tds[1].get_text(strip=True)
-            ]
-        else:  # Fallback to more generic lists
-            runners = [li.get_text(strip=True) for li in soup.find_all("li") if len(li.get_text(strip=True).split()) > 1]
+            for tr in runners_table.find_all("tr"):
+                tds = tr.find_all("td")
+                if len(tds) > 1:
+                    name = tds[1].get_text(strip=True)
+                    if name:
+                        runners.append(name)
+        # Cap implausible sizes
+        if len(runners) < 3 or len(runners) > 16:
+            return None
 
         runners_data = [{"name": r, "odds_str": ""} for r in runners]
-        if not runners_data:
-            return None
+
+        # Derive correct meeting date from mc parameter when present
+        date_str = dt.strftime("%Y-%m-%d")
+        try:
+            m_mc = re.search(r"[?&]mc=([A-Z]{2})(\d{2})(\d{2})(\d{2})", url)
+            if m_mc:
+                _, dd, mm, yy = m_mc.groups()
+                date_str = f"20{yy}-{mm}-{dd}"
+        except Exception:
+            pass
 
         tz_name = self._track_tz(course, "AU")
         local_tz = ZoneInfo(tz_name)
-        date_str = dt.strftime("%Y-%m-%d")
-        local_dt = datetime.combine(dt.date(), datetime.strptime(race_time, "%H:%M").time()).replace(tzinfo=local_tz)
+        try:
+            local_date = datetime.fromisoformat(date_str).date()
+        except Exception:
+            local_date = dt.date()
+        local_dt = datetime.combine(local_date, datetime.strptime(race_time, "%H:%M").time()).replace(tzinfo=local_tz)
         return RaceData(
             id=self._race_id(course, date_str, race_time),
             course=course,

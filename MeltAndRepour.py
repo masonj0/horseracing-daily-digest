@@ -130,6 +130,12 @@ def convert_odds_to_fractional(odds_str: str) -> float:
     except Exception:
         return 999.0
 
+# NEW: handle meta-refresh redirects on sites using HTML refresh
+def _extract_meta_refresh_target(html: str) -> Optional[str]:
+    m = re.search(r'<meta[^>]*http-equiv=["\']?refresh["\']?[^>]*content=["\']?[^>]*url=([^"\' >]+)', html, re.IGNORECASE)
+    if m:
+        return m.group(1).strip()
+    return None
 
 # ---- time helpers ----
 def parse_local_hhmm(time_text: str) -> Optional[str]:
@@ -362,6 +368,25 @@ class AsyncHttpClient:
                         return cached[0]
                 r.raise_for_status()
                 text = r.text
+                # Follow meta-refresh redirects without JS where present
+                target = _extract_meta_refresh_target(text)
+                if target:
+                    try:
+                        next_url = str(httpx.URL(target, base=r.request.url))
+                        for _ in range(2):
+                            await asyncio.sleep(0.05)
+                            await self._throttle(next_url)
+                            rr = await client.get(next_url, headers={"User-Agent": self._ua()})
+                            rr.raise_for_status()
+                            tt = rr.text
+                            nxt = _extract_meta_refresh_target(tt)
+                            if not nxt:
+                                if self.cache_manager and rr.status_code == 200:
+                                    await self.cache_manager.set(next_url, tt, rr.headers)
+                                return tt
+                            next_url = str(httpx.URL(nxt, base=rr.request.url))
+                    except Exception:
+                        pass
                 if self.cache_manager and r.status_code == 200:
                     await self.cache_manager.set(url, text, r.headers)
                 return text
@@ -597,7 +622,10 @@ class GBGreyhoundSource(DataSourceBase):
                 meeting_links.add(self.BASE + href)
 
         for m_url in sorted(meeting_links):
-            m_html = await self.http_client.fetch(m_url)
+            m_html = await self.http_client.fetch(m_url, use_browser=False)
+            if not m_html:
+                # second chance via headless
+                m_html = await self.http_client.fetch(m_url, use_browser=True)
             if not m_html:
                 continue
             msoup = BeautifulSoup(m_html, "html.parser")
@@ -609,7 +637,9 @@ class GBGreyhoundSource(DataSourceBase):
 
             for r_url in sorted(race_links):
                 try:
-                    rd = await self._parse_race(r_url)
+                    # remove fragment to avoid server ignoring params after '#'
+                    clean_url = r_url.split('#', 1)[0]
+                    rd = await self._parse_race(clean_url)
                     if rd:
                         out.append(rd)
                 except Exception:
@@ -807,8 +837,16 @@ class StandardbredCanadaSource(DataSourceBase):
     async def fetch_races(self, date_range: Tuple[datetime, datetime]) -> List[RaceData]:
         out: List[RaceData] = []
         for dt in self._days(date_range):
-            index = f"{self.BASE}/racing/entries/date/{dt.strftime('%Y-%m-%d')}"
-            html = await self.http_client.fetch(index)
+            index_candidates = [
+                f"{self.BASE}/racing/entries/date/{dt.strftime('%Y-%m-%d')}",
+                f"{self.BASE}/racing/entries?date={dt.strftime('%Y-%m-%d')}",
+                f"{self.BASE}/racing/entries",
+            ]
+            html = None
+            for idx in index_candidates:
+                html = await self.http_client.fetch(idx)
+                if html:
+                    break
             if not html:
                 continue
             soup = BeautifulSoup(html, "html.parser")

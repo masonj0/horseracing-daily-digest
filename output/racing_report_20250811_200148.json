@@ -1,0 +1,888 @@
+{
+  "schema_version": "3.1",
+  "generated_at": "2025-08-11T20:01:48",
+  "config": {
+    "cache_dir": ".cache",
+    "concurrency": 6,
+    "thresholds": {
+      "min_field_size": 4,
+      "max_field_size": 6,
+      "min_fav_fractional": 1.0,
+      "min_second_fav_fractional": 3.0,
+      "min_odds_ratio": 0.0
+    },
+    "formats": [
+      "html",
+      "json",
+      "csv"
+    ],
+    "no_cache": false,
+    "insecure_ssl": false,
+    "no_http2": true
+  },
+  "statistics": {
+    "cache_hits": 1,
+    "cache_misses": 42,
+    "http_success": 21,
+    "http_retries": 0,
+    "http_blocked": 0,
+    "fallback_success": 14,
+    "browser_attempts": 0,
+    "browser_success": 0,
+    "races_total": 2,
+    "duration_seconds": 8.395058739999513,
+    "per_source_counts": {
+      "AtTheRacesSource": 0,
+      "SkySportsSource": 0,
+      "GBGreyhoundSource": 0,
+      "HarnessRacingAustraliaSource": 2,
+      "StandardbredCanadaSource": 0
+    }
+  },
+  "races": [
+    {
+      "id": "cfef990d4792",
+      "course": "Harness Meeting",
+      "race_time": "13:12",
+      "utc_datetime": "2025-08-11T03:12:00+00:00",
+      "local_time": "13:12",
+      "timezone_name": "Australia/Sydney",
+      "field_size": 99,
+      "country": "AU",
+      "discipline": "harness",
+      "race_number": null,
+      "grade": null,
+      "distance": null,
+      "surface": null,
+      "favorite": null,
+      "second_favorite": null,
+      "all_runners": [
+        {
+          "name": "All Races",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R1 (1:12 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R2 (1:47 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R3 (2:22 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R4 (3:03 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "NewsTop StoriesVideo HubThe Racing OfficeIndustry NewsStewards WrapNews ArchiveCOVID-19 UpdatesJapanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "Top Stories",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Hub",
+          "odds_str": ""
+        },
+        {
+          "name": "The Racing Office",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry News",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Wrap",
+          "odds_str": ""
+        },
+        {
+          "name": "News Archive",
+          "odds_str": ""
+        },
+        {
+          "name": "COVID-19 Updates",
+          "odds_str": ""
+        },
+        {
+          "name": "Japanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "NationalHRARules of RacingHorse SearchGear and EquipmentInter DominionInternational AssociationsDisqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "Rules of Racing",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear and Equipment",
+          "odds_str": ""
+        },
+        {
+          "name": "Inter Dominion",
+          "odds_str": ""
+        },
+        {
+          "name": "International Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Disqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "RacingFieldsForm GuidesResultsToday's ScratchingsGear ChangesVideo ReplaysTrial ResultsHorse SearchStewards ReportsMeeting CalendarFeature RacesTracksTop 20 - Performance TablesState PremiershipsGrand CircuitTrotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Form Guides",
+          "odds_str": ""
+        },
+        {
+          "name": "Today's Scratchings",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear Changes",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Replays",
+          "odds_str": ""
+        },
+        {
+          "name": "Trial Results",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Reports",
+          "odds_str": ""
+        },
+        {
+          "name": "Meeting Calendar",
+          "odds_str": ""
+        },
+        {
+          "name": "Feature Races",
+          "odds_str": ""
+        },
+        {
+          "name": "Top 20 - Performance Tables",
+          "odds_str": ""
+        },
+        {
+          "name": "State Premierships",
+          "odds_str": ""
+        },
+        {
+          "name": "Grand Circuit",
+          "odds_str": ""
+        },
+        {
+          "name": "Trotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Owners & BreedersAustralian BreedingFantasy MatingRegister your StallionRegistered StallionsStuds & SiresIndustry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Australian Breeding",
+          "odds_str": ""
+        },
+        {
+          "name": "Fantasy Mating",
+          "odds_str": ""
+        },
+        {
+          "name": "Register your Stallion",
+          "odds_str": ""
+        },
+        {
+          "name": "Registered Stallions",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "ProductsHarnessWebStallion SelectorBlackbookCareersLicence DirectoryPunters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "Stallion Selector",
+          "odds_str": ""
+        },
+        {
+          "name": "Licence Directory",
+          "odds_str": ""
+        },
+        {
+          "name": "Punters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "SearchEntire SitePDFsRulesStuds & SiresHorse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Entire Site",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "NewsTop StoriesVideo HubThe Racing OfficeIndustry NewsStewards WrapNews ArchiveCOVID-19 UpdatesJapanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "Top Stories",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Hub",
+          "odds_str": ""
+        },
+        {
+          "name": "The Racing Office",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry News",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Wrap",
+          "odds_str": ""
+        },
+        {
+          "name": "News Archive",
+          "odds_str": ""
+        },
+        {
+          "name": "COVID-19 Updates",
+          "odds_str": ""
+        },
+        {
+          "name": "Japanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "NationalHRARules of RacingHorse SearchGear and EquipmentInter DominionInternational AssociationsDisqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "Rules of Racing",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear and Equipment",
+          "odds_str": ""
+        },
+        {
+          "name": "Inter Dominion",
+          "odds_str": ""
+        },
+        {
+          "name": "International Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Disqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "RacingFieldsForm GuidesResultsToday's ScratchingsGear ChangesVideo ReplaysTrial ResultsHorse SearchStewards ReportsMeeting CalendarFeature RacesTracksTop 20 - Performance TablesState PremiershipsGrand CircuitTrotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Form Guides",
+          "odds_str": ""
+        },
+        {
+          "name": "Today's Scratchings",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear Changes",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Replays",
+          "odds_str": ""
+        },
+        {
+          "name": "Trial Results",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Reports",
+          "odds_str": ""
+        },
+        {
+          "name": "Meeting Calendar",
+          "odds_str": ""
+        },
+        {
+          "name": "Feature Races",
+          "odds_str": ""
+        },
+        {
+          "name": "Top 20 - Performance Tables",
+          "odds_str": ""
+        },
+        {
+          "name": "State Premierships",
+          "odds_str": ""
+        },
+        {
+          "name": "Grand Circuit",
+          "odds_str": ""
+        },
+        {
+          "name": "Trotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Owners & BreedersAustralian BreedingFantasy MatingRegister your StallionRegistered StallionsStuds & SiresIndustry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Australian Breeding",
+          "odds_str": ""
+        },
+        {
+          "name": "Fantasy Mating",
+          "odds_str": ""
+        },
+        {
+          "name": "Register your Stallion",
+          "odds_str": ""
+        },
+        {
+          "name": "Registered Stallions",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "ProductsHarnessWebStallion SelectorBlackbookCareersLicence DirectoryPunters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "Stallion Selector",
+          "odds_str": ""
+        },
+        {
+          "name": "Licence Directory",
+          "odds_str": ""
+        },
+        {
+          "name": "Punters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "SearchEntire SitePDFsRulesStuds & SiresHorse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Entire Site",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Terms Of Use",
+          "odds_str": ""
+        },
+        {
+          "name": "Contact Us",
+          "odds_str": ""
+        },
+        {
+          "name": "© Racing Information Services Enterprise 2025",
+          "odds_str": ""
+        },
+        {
+          "name": "Powered by",
+          "odds_str": ""
+        }
+      ],
+      "race_url": "https://www.harness.org.au/racing/fields/race-fields/?mc=AP120825",
+      "form_guide_url": null,
+      "value_score": 5.0,
+      "data_sources": {
+        "course": "HRA",
+        "runners": "HRA"
+      }
+    },
+    {
+      "id": "a48c9f270618",
+      "course": "Harness Meeting",
+      "race_time": "13:12",
+      "utc_datetime": "2025-08-12T03:12:00+00:00",
+      "local_time": "13:12",
+      "timezone_name": "Australia/Sydney",
+      "field_size": 99,
+      "country": "AU",
+      "discipline": "harness",
+      "race_number": null,
+      "grade": null,
+      "distance": null,
+      "surface": null,
+      "favorite": null,
+      "second_favorite": null,
+      "all_runners": [
+        {
+          "name": "All Races",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R1 (1:12 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R2 (1:47 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R3 (2:22 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "Albion Park R4 (3:03 PM)",
+          "odds_str": ""
+        },
+        {
+          "name": "NewsTop StoriesVideo HubThe Racing OfficeIndustry NewsStewards WrapNews ArchiveCOVID-19 UpdatesJapanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "Top Stories",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Hub",
+          "odds_str": ""
+        },
+        {
+          "name": "The Racing Office",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry News",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Wrap",
+          "odds_str": ""
+        },
+        {
+          "name": "News Archive",
+          "odds_str": ""
+        },
+        {
+          "name": "COVID-19 Updates",
+          "odds_str": ""
+        },
+        {
+          "name": "Japanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "NationalHRARules of RacingHorse SearchGear and EquipmentInter DominionInternational AssociationsDisqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "Rules of Racing",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear and Equipment",
+          "odds_str": ""
+        },
+        {
+          "name": "Inter Dominion",
+          "odds_str": ""
+        },
+        {
+          "name": "International Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Disqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "RacingFieldsForm GuidesResultsToday's ScratchingsGear ChangesVideo ReplaysTrial ResultsHorse SearchStewards ReportsMeeting CalendarFeature RacesTracksTop 20 - Performance TablesState PremiershipsGrand CircuitTrotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Form Guides",
+          "odds_str": ""
+        },
+        {
+          "name": "Today's Scratchings",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear Changes",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Replays",
+          "odds_str": ""
+        },
+        {
+          "name": "Trial Results",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Reports",
+          "odds_str": ""
+        },
+        {
+          "name": "Meeting Calendar",
+          "odds_str": ""
+        },
+        {
+          "name": "Feature Races",
+          "odds_str": ""
+        },
+        {
+          "name": "Top 20 - Performance Tables",
+          "odds_str": ""
+        },
+        {
+          "name": "State Premierships",
+          "odds_str": ""
+        },
+        {
+          "name": "Grand Circuit",
+          "odds_str": ""
+        },
+        {
+          "name": "Trotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Owners & BreedersAustralian BreedingFantasy MatingRegister your StallionRegistered StallionsStuds & SiresIndustry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Australian Breeding",
+          "odds_str": ""
+        },
+        {
+          "name": "Fantasy Mating",
+          "odds_str": ""
+        },
+        {
+          "name": "Register your Stallion",
+          "odds_str": ""
+        },
+        {
+          "name": "Registered Stallions",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "ProductsHarnessWebStallion SelectorBlackbookCareersLicence DirectoryPunters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "Stallion Selector",
+          "odds_str": ""
+        },
+        {
+          "name": "Licence Directory",
+          "odds_str": ""
+        },
+        {
+          "name": "Punters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "SearchEntire SitePDFsRulesStuds & SiresHorse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Entire Site",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "NewsTop StoriesVideo HubThe Racing OfficeIndustry NewsStewards WrapNews ArchiveCOVID-19 UpdatesJapanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "Top Stories",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Hub",
+          "odds_str": ""
+        },
+        {
+          "name": "The Racing Office",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry News",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Wrap",
+          "odds_str": ""
+        },
+        {
+          "name": "News Archive",
+          "odds_str": ""
+        },
+        {
+          "name": "COVID-19 Updates",
+          "odds_str": ""
+        },
+        {
+          "name": "Japanese Encephalitis Virus",
+          "odds_str": ""
+        },
+        {
+          "name": "NationalHRARules of RacingHorse SearchGear and EquipmentInter DominionInternational AssociationsDisqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "Rules of Racing",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear and Equipment",
+          "odds_str": ""
+        },
+        {
+          "name": "Inter Dominion",
+          "odds_str": ""
+        },
+        {
+          "name": "International Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Disqualified Persons",
+          "odds_str": ""
+        },
+        {
+          "name": "RacingFieldsForm GuidesResultsToday's ScratchingsGear ChangesVideo ReplaysTrial ResultsHorse SearchStewards ReportsMeeting CalendarFeature RacesTracksTop 20 - Performance TablesState PremiershipsGrand CircuitTrotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Form Guides",
+          "odds_str": ""
+        },
+        {
+          "name": "Today's Scratchings",
+          "odds_str": ""
+        },
+        {
+          "name": "Gear Changes",
+          "odds_str": ""
+        },
+        {
+          "name": "Video Replays",
+          "odds_str": ""
+        },
+        {
+          "name": "Trial Results",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Stewards Reports",
+          "odds_str": ""
+        },
+        {
+          "name": "Meeting Calendar",
+          "odds_str": ""
+        },
+        {
+          "name": "Feature Races",
+          "odds_str": ""
+        },
+        {
+          "name": "Top 20 - Performance Tables",
+          "odds_str": ""
+        },
+        {
+          "name": "State Premierships",
+          "odds_str": ""
+        },
+        {
+          "name": "Grand Circuit",
+          "odds_str": ""
+        },
+        {
+          "name": "Trotting Masters",
+          "odds_str": ""
+        },
+        {
+          "name": "Owners & BreedersAustralian BreedingFantasy MatingRegister your StallionRegistered StallionsStuds & SiresIndustry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "Australian Breeding",
+          "odds_str": ""
+        },
+        {
+          "name": "Fantasy Mating",
+          "odds_str": ""
+        },
+        {
+          "name": "Register your Stallion",
+          "odds_str": ""
+        },
+        {
+          "name": "Registered Stallions",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Industry Associations",
+          "odds_str": ""
+        },
+        {
+          "name": "ProductsHarnessWebStallion SelectorBlackbookCareersLicence DirectoryPunters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "Stallion Selector",
+          "odds_str": ""
+        },
+        {
+          "name": "Licence Directory",
+          "odds_str": ""
+        },
+        {
+          "name": "Punters Corner",
+          "odds_str": ""
+        },
+        {
+          "name": "SearchEntire SitePDFsRulesStuds & SiresHorse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Entire Site",
+          "odds_str": ""
+        },
+        {
+          "name": "Studs & Sires",
+          "odds_str": ""
+        },
+        {
+          "name": "Horse Search",
+          "odds_str": ""
+        },
+        {
+          "name": "Terms Of Use",
+          "odds_str": ""
+        },
+        {
+          "name": "Contact Us",
+          "odds_str": ""
+        },
+        {
+          "name": "© Racing Information Services Enterprise 2025",
+          "odds_str": ""
+        },
+        {
+          "name": "Powered by",
+          "odds_str": ""
+        }
+      ],
+      "race_url": "https://www.harness.org.au/racing/fields/race-fields/?mc=AP120825",
+      "form_guide_url": null,
+      "value_score": 5.0,
+      "data_sources": {
+        "course": "HRA",
+        "runners": "HRA"
+      }
+    }
+  ]
+}

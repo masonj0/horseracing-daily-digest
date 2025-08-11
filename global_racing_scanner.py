@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Melt & Repour Global Racing Scanner V3.1
+Melt & Repour Global Racing Scanner V3.1 - PATCHED
 
-- PATCHED: Completely overhauled SkySportsSource parser to faithfully replicate the successful logic from the 'Superfecta' script, fixing the primary data-loss bug.
-- PATCHED: Hardened generic parsers for Harness/Standardbred sources to prevent garbage data.
-- PATCHED: Implemented smarter data merging to prioritize sources with rich odds/runner info.
-- Incorporates fetching resilience (httpx -> curl_cffi -> system curl).
-- Generates a superior, tabbed HTML tipsheet with a dedicated "Filtered Races" view.
-- Adds configurable field size filtering via CLI for creating targeted tipsheets.
+- PATCHED: Fixed 12-hour time parsing with AM/PM awareness for AU/CA harness sources
+- PATCHED: Added meta-refresh redirect handling for HRA redirect carousel
+- PATCHED: Hardened HRA fetches with fragment stripping and headless fallback
+- PATCHED: Standardbred Canada index fallback for handling 404 dates
+- PATCHED: Corrected dedup key to avoid over-merging races
+- PATCHED: Enhanced SkySportsSource robustness with fallback counting
+- PATCHED: Updated timezone mappings for Australian tracks
 """
 
 import asyncio
@@ -58,7 +59,7 @@ TRACK_TIMEZONES = {
     # France
     "la-teste-de-buch": "Europe/Paris", "clairefontaine": "Europe/Paris", "cagnes-sur-mer-midi": "Europe/Paris",
     "divonne-les-bains": "Europe/Paris", "longchamp": "Europe/Paris",
-    # Australia
+    # Australia - PATCHED: Enhanced AU harness TZs
     "flemington": "Australia/Melbourne", "randwick": "Australia/Sydney", "eagle-farm": "Australia/Brisbane",
     "albion-park": "Australia/Brisbane", "redcliffe": "Australia/Brisbane",
     "menangle": "Australia/Sydney", "gloucester-park": "Australia/Perth",
@@ -98,11 +99,26 @@ def convert_odds_to_fractional(odds_str: str) -> float:
         return dec - 1.0 if dec > 1 else 999.0
     except Exception: return 999.0
 
+# PATCHED: Fix 12-hour times with AM/PM-aware parsing
 def parse_local_hhmm(time_text: str) -> Optional[str]:
-    if not time_text: return None
-    m = re.search(r"\b(\d{1,2}:\d{2})\b", time_text)
-    if not m: return None
-    return m.group(1)
+    if not time_text:
+        return None
+    m = re.search(r"\b(\d{1,2}):(\d{2})\s*([AaPp][Mm])?\b", time_text)
+    if not m:
+        return None
+    h, mm, ap = m.group(1), m.group(2), (m.group(3) or "").upper()
+    hour = int(h)
+    if ap == "AM":
+        hour = 0 if hour == 12 else hour
+    elif ap == "PM":
+        hour = 12 if hour == 12 else hour + 12
+    hour = max(0, min(23, hour))
+    return f"{hour:02d}:{mm}"
+
+# PATCHED: Helper for meta-refresh redirect extraction
+def _extract_meta_refresh_target(html: str) -> Optional[str]:
+    m = re.search(r'<meta[^>]*http-equiv=["\']?refresh["\']?[^>]*content=["\']?[^>]*url=([^"\' >]+)', html, re.I)
+    return m.group(1).strip() if m else None
 
 @dataclass
 class RaceData:
@@ -193,12 +209,12 @@ class AsyncHttpClient:
 
             if content := await self._fetch_http(url):
                 self.success_count += 1; return content
-            
+
             if content := await self._fetch_fallback(url):
                 self.success_count += 1; self.fallback_success += 1
                 if self.cache_manager: await self.cache_manager.set(url, content, headers={"cache-control": "max-age=600"})
                 return content
-            
+
             if use_browser and os.getenv("DISABLE_BROWSER_FETCH") != "1":
                 self.browser_attempts += 1
                 if content := await self._fetch_browser(url):
@@ -221,6 +237,27 @@ class AsyncHttpClient:
                 if r.status_code == 304 and self.cache_manager and (cached := await self.cache_manager.get(url)):
                     return cached[0]
                 r.raise_for_status(); text = r.text
+
+                # PATCHED: Follow meta-refresh redirects (fixes HRA redirect carousel)
+                target = _extract_meta_refresh_target(text)
+                if target:
+                    try:
+                        next_url = str(httpx.URL(target, base=r.request.url))
+                        for _ in range(2):
+                            await asyncio.sleep(0.05)
+                            await self._throttle(next_url)
+                            rr = await client.get(next_url, headers={"User-Agent": self._ua()})
+                            rr.raise_for_status()
+                            tt = rr.text
+                            nxt = _extract_meta_refresh_target(tt)
+                            if not nxt:
+                                if self.cache_manager and rr.status_code == 200:
+                                    await self.cache_manager.set(next_url, tt, rr.headers)
+                                return tt
+                            next_url = str(httpx.URL(nxt, base=rr.request.url))
+                    except Exception:
+                        pass
+
                 if self.cache_manager and r.status_code == 200: await self.cache_manager.set(url, text, r.headers)
                 return text
             except httpx.HTTPStatusError as e:
@@ -230,7 +267,7 @@ class AsyncHttpClient:
             except (httpx.TimeoutException, httpx.RequestError):
                 self.retry_count += 1; await asyncio.sleep(0.5 + random.random() * 0.25); continue
         return None
-    
+
     def _try_curl_cffi_sync(self, url: str) -> Optional[str]:
         try:
             session = CurlCffiSession(impersonate="chrome120", timeout=20)
@@ -349,35 +386,47 @@ class AtTheRacesSource(DataSourceBase):
 
 class SkySportsSource(DataSourceBase):
     BASE = "https://www.skysports.com/racing/racecards"
-    
+
     async def fetch_races(self, date_range: Tuple[datetime, datetime]) -> List[RaceData]:
         html = await self.http_client.fetch(self.BASE)
         if not html: return []
         soup = BeautifulSoup(html, 'html.parser')
         races: List[RaceData] = []
         for container in soup.find_all('div', class_='sdc-site-racing-meetings__event'):
-            if rd := self._parse_race_entry(container):
+            if rd := await self._parse_race_entry(container):
                 races.append(rd)
         logging.info(f"SkySportsSource found {len(races)} races.")
         return races
 
-    def _parse_race_entry(self, container: BeautifulSoup) -> Optional[RaceData]:
+    async def _parse_race_entry(self, container: BeautifulSoup) -> Optional[RaceData]:
         try:
             racecard_tag = container.find('a', class_='sdc-site-racing-meetings__event-link')
             if not (racecard_tag and racecard_tag.get('href')): return None
-            
+
             race_url = urljoin(self.BASE, racecard_tag['href'])
             details_span = container.find('span', class_='sdc-site-racing-meetings__event-details')
             details_text = details_span.get_text(strip=True) if details_span else ""
-            
+
             runner_match = re.search(r'(\d+)\s+runners?', details_text, re.I)
             field_size = int(runner_match.group(1)) if runner_match else 0
-            if field_size == 0: return None
-            
+
+            # PATCHED: Enhanced SkySportsSource robustness - fallback to counting declared runners
+            if field_size == 0:
+                # Fetch the racecard page and count declared rows
+                rc_html = await self.http_client.fetch(race_url)
+                if rc_html:
+                    rc = BeautifulSoup(rc_html, "html.parser")
+                    declared = rc.select("table tbody tr") or rc.select("tbody tr")
+                    cnt = len([r for r in declared if r.find('td')])
+                    if cnt > 0:
+                        field_size = cnt
+            if field_size == 0:
+                return None
+
             race_time = parse_local_hhmm(details_text)
             if not race_time: return None
 
-            # --- Patched Logic: Parse URL for date and course ---
+            # Parse URL for date and course
             path_parts = urlparse(race_url).path.strip('/').split('/')
             course_name, date_str = "Unknown", datetime.now().strftime("%Y-%m-%d")
             try:
@@ -396,7 +445,7 @@ class SkySportsSource(DataSourceBase):
             local_tz = ZoneInfo(tz_name)
             local_dt = datetime.combine(dt_obj.date(), datetime.strptime(race_time, "%H:%M").time()).replace(tzinfo=local_tz)
             utc_dt = local_dt.astimezone(ZoneInfo("UTC"))
-            
+
             return RaceData(
                 id=self._race_id(course_name, date_str, race_time), course=course_name, race_time=race_time,
                 utc_datetime=utc_dt, local_time=local_dt.strftime("%H:%M"), timezone_name=tz_name,
@@ -417,7 +466,7 @@ class GBGreyhoundSource(DataSourceBase):
         soup = BeautifulSoup(html, "html.parser"); meeting_links = set()
         for a in soup.find_all("a", href=re.compile(r"^/greyhounds/racecards/[a-z0-9\-]+/\d{4}-\d{2}-\d{2}$")):
             meeting_links.add(urljoin(self.BASE, a["href"]))
-        
+
         tasks = [self._fetch_meeting(m_url) for m_url in sorted(list(meeting_links))]
         results = await asyncio.gather(*tasks)
         return [race for sublist in results for race in sublist]
@@ -428,7 +477,7 @@ class GBGreyhoundSource(DataSourceBase):
         soup = BeautifulSoup(html, "html.parser"); race_links = set()
         for a in soup.find_all("a", href=re.compile(r"^/greyhounds/racecards/[a-z0-9\-]+/\d{4}-\d{2}-\d{2}/\d{3,4}$")):
              race_links.add(urljoin(self.BASE, a["href"]))
-        
+
         tasks = [self._parse_race(r_url) for r_url in sorted(list(race_links))]
         results = await asyncio.gather(*tasks)
         return [race for race in results if race]
@@ -461,26 +510,29 @@ class HarnessRacingAustraliaSource(DataSourceBase):
             if not html: continue
             soup = BeautifulSoup(html, "html.parser"); race_links = set()
             for a in soup.find_all("a", href=re.compile(r"/racing/fields/.*(meeting|race)")):
-                 race_links.add(urljoin(self.BASE, a["href"]))
+                # PATCHED: Strip fragments before fetching race URLs
+                href = a["href"].split('#', 1)[0]
+                race_links.add(urljoin(self.BASE, href))
             tasks = [self._parse_race(r_url, dt) for r_url in sorted(list(race_links))]
             results = await asyncio.gather(*tasks)
             out.extend([r for r in results if r])
         return out
 
     async def _parse_race(self, url: str, dt: datetime) -> Optional[RaceData]:
-        html = await self.http_client.fetch(url)
+        # PATCHED: Harden HRA fetches with headless fallback second chance
+        html = await self.http_client.fetch(url) or await self.http_client.fetch(url, use_browser=True)
         if not html: return None
         soup = BeautifulSoup(html, "html.parser")
         course_h = soup.find(["h1", "h2"]); course = course_h.get_text(strip=True) if course_h else "Harness Meeting"
         if not (race_time := parse_local_hhmm(soup.get_text(" ", strip=True))): return None
-        
+
         # Hardened parsing: Look for specific tables/lists of runners
         runners_table = soup.find("table", class_=re.compile("field", re.I))
         if runners_table:
             runners = [tds[1].get_text(strip=True) for tr in runners_table.find_all("tr") if (tds := tr.find_all("td")) and len(tds) > 2 and tds[1].get_text(strip=True)]
         else: # Fallback to more generic lists
             runners = [li.get_text(strip=True) for li in soup.find_all("li") if len(li.get_text(strip=True).split()) > 1]
-        
+
         runners_data = [{"name": r, "odds_str": ""} for r in runners]
         if not runners_data: return None
 
@@ -496,17 +548,37 @@ class StandardbredCanadaSource(DataSourceBase):
     async def fetch_races(self, date_range: Tuple[datetime, datetime]) -> List[RaceData]:
         out: List[RaceData] = []
         for dt in self._days(date_range):
-            index = f"{self.BASE}/racing/entries/date/{dt.strftime('%Y-%m-%d')}"
-            html = await self.http_client.fetch(index)
+            # PATCHED: Standardbred Canada index fallback (handles 404 dates)
+            index_candidates = [
+                f"{self.BASE}/racing/entries/date/{dt.strftime('%Y-%m-%d')}",
+                f"{self.BASE}/racing/entries?date={dt.strftime('%Y-%m-%d')}",
+                f"{self.BASE}/racing/entries",
+            ]
+            html = None
+            for idx in index_candidates:
+                html = await self.http_client.fetch(idx)
+                if html:
+                    break
             if not html: continue
-            soup = BeautifulSoup(html, "html.parser"); meeting_links = set()
-            for a in soup.find_all("a", href=re.compile(r"^/racing/entries/[a-z0-9\-]+/\d{4}-\d{2}-\d{2}")):
-                meeting_links.add(urljoin(self.BASE, a["href"]))
+
+            soup = BeautifulSoup(html, "html.parser")
+            # prefer matching date links; if none, accept others with that date in anchor text
+            meeting_links = set()
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if re.match(rf"^/racing/entries/[a-z0-9\-]+/{dt.strftime('%Y-%m-%d')}$", href):
+                    meeting_links.add(urljoin(self.BASE, href))
+            if not meeting_links:
+                for a in soup.find_all("a", href=True):
+                    href = a["href"]
+                    if re.match(r"^/racing/entries/[a-z0-9\-]+/\d{4}-\d{2}-\d{2}$", href) and dt.strftime("%Y-%m-%d") in a.get_text(" ", strip=True):
+                        meeting_links.add(urljoin(self.BASE, href))
+
             tasks = [self._parse_meeting(m_url, dt) for m_url in sorted(list(meeting_links))]
             results = await asyncio.gather(*tasks)
             out.extend([r for sublist in results for r in sublist])
         return out
-    
+
     async def _parse_meeting(self, url: str, dt: datetime) -> List[RaceData]:
         html = await self.http_client.fetch(url)
         if not html: return []
@@ -523,15 +595,15 @@ class StandardbredCanadaSource(DataSourceBase):
         course_h = sec_soup.find_parent("main").find(["h1","h2"]) if sec_soup.find_parent("main") else sec_soup.find(["h1","h2"])
         course = course_h.get_text(strip=True) if course_h else "Standardbred Canada"
         if not (race_time := parse_local_hhmm(sec_soup.get_text(" ", strip=True))): return None
-        
+
         runners_table = sec_soup.find("table", class_=re.compile("entries", re.I))
         if runners_table:
              runners = [tds[1].get_text(strip=True) for tr in runners_table.find_all("tr") if (tds := tr.find_all("td")) and len(tds) > 2 and tds[1].get_text(strip=True)]
         else: return None
-        
+
         runners_data = [{"name": r, "odds_str": ""} for r in runners]
         if not runners_data: return None
-        
+
         tz_name = self._track_tz(course, "CA"); local_tz = ZoneInfo(tz_name); date_str = dt.strftime("%Y-%m-%d")
         local_dt = datetime.combine(dt.date(), datetime.strptime(race_time, "%H:%M").time()).replace(tzinfo=local_tz)
         return RaceData(id=self._race_id(course, date_str, race_time), course=course, race_time=race_time, utc_datetime=local_dt.astimezone(ZoneInfo("UTC")),
@@ -560,11 +632,23 @@ class RacingDataAggregator:
         await self._enrich_rs_links(merged)
         for r in merged: r.value_score = self.scorer.calculate_score(r)
         return merged
+
+    # PATCHED: Dedup key correctness (avoid over-merge) - use race_time only, no implicit UTC minute
     def _key(self, race: RaceData) -> str:
-        course = self._normalize_course_name(race.course); date = race.utc_datetime.strftime("%Y-%m-%d")
-        t_norm = datetime.strptime(race.race_time, "%H:%M").replace(minute=(race.utc_datetime.minute // 5) * 5).strftime("%H:%M")
+        course = self._normalize_course_name(race.course)
+        date = race.utc_datetime.strftime("%Y-%m-%d")
+        # round race.race_time in 5-min buckets
+        try:
+            t = datetime.strptime(race.race_time, "%H:%M")
+            t_norm = t.replace(minute=(t.minute // 5) * 5, second=0).strftime("%H:%M")
+        except Exception:
+            t_norm = race.race_time
         return "|".join([course, date, t_norm])
-    def _norm_course(self, name: str) -> str: return re.sub(r"\s+", " ", re.sub(r"\s*\([^)]*\)", "", name.lower().strip()).replace("-", " "))
+
+    def _normalize_course_name(self, name: str) -> str:
+        if not name: return ""
+        return re.sub(r"\s*\([^)]*\)", "", name.lower().strip())
+
     def _merge(self, a: RaceData, b: RaceData) -> RaceData:
         # Patched: Prioritize the data source with richer info (odds > runners > basic)
         def get_richness(r: RaceData):
@@ -572,10 +656,10 @@ class RacingDataAggregator:
             if r.field_size > 0: return 1
             return 0
         primary, secondary = (a, b) if get_richness(a) >= get_richness(b) else (b, a)
-        
+
         merged_sources = {**secondary.data_sources, **primary.data_sources}
         all_runners = primary.all_runners if len(primary.all_runners) >= len(secondary.all_runners) else secondary.all_runners
-        
+
         fav, sec_fav = primary.favorite, primary.second_favorite
         if not fav and all_runners:
             fav_sorted = sorted(all_runners, key=lambda x: convert_odds_to_fractional(x.get("odds_str", "")))
@@ -596,6 +680,7 @@ class RacingDataAggregator:
             k = self._key(r)
             m[k] = self._merge(m[k], r) if k in m else r
         return list(m.values())
+
     async def _enrich_rs_links(self, races: List[RaceData]) -> None:
         url = "https://www.racingandsports.com.au/todays-racing-json-v2"
         try:
@@ -613,8 +698,9 @@ class RacingDataAggregator:
                     r.form_guide_url = link; r.data_sources["form"] = "R&S"
         except Exception as e: logging.debug(f"R&S enrichment failed: {e}")
 
+    def _norm_course(self, name: str) -> str: return re.sub(r"\s+", " ", re.sub(r"\s*\([^)]*\)", "", name.lower().strip()).replace("-", " "))
+
 class OutputManager:
-    # --- THIS CLASS IS SIGNIFICANTLY UPGRADED ---
     def __init__(self, out_dir: Path, cfg: Dict[str, Any], thresholds: Dict[str, Any]):
         self.out_dir = out_dir; self.out_dir.mkdir(exist_ok=True, parents=True)
         self.cfg = cfg; self.th = thresholds
@@ -647,7 +733,7 @@ class OutputManager:
                         "second_favorite_odds": sec.get("odds_str", ""), "race_url": r.race_url, "form_guide_url": r.form_guide_url or "",
                         "data_sources": ",".join(r.data_sources.values())})
         await asyncio.to_thread(_write); logging.info(f"Wrote CSV {fname}")
-    
+
     def _filter_races(self, races: List[RaceData]) -> List[RaceData]:
         min_f = self.th.get("min_field_size", 4); max_f = self.th.get("max_field_size", 6)
         return [r for r in races if min_f <= r.field_size <= max_f]
@@ -656,20 +742,20 @@ class OutputManager:
         filtered_races = self._filter_races(all_races)
         filtered_races.sort(key=lambda r: (r.field_size, r.utc_datetime))
         all_races.sort(key=lambda r: r.value_score, reverse=True)
-        
+
         icons = {"thoroughbred": "🐎", "greyhound": "🐕", "harness": "👨‍🦽"}
         strategies = {3: "[Tri]", 4: "[Superfecta]", 5: "[Superfecta+]", 6: "[Superfecta++]"}
 
         style_and_script = """
         <style>:root{color-scheme:light dark}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background-color:#f4f4f9;color:#333;margin:0;padding:20px;line-height:1.6}.container{max-width:1200px;margin:auto;background-color:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.05)}h1{color:#1a1a1a;border-bottom:3px solid #007bff;padding-bottom:10px}.summary{background:#e7f3ff;padding:15px;border-radius:8px;margin-bottom:20px;border-left:4px solid #007bff}.tabs{display:flex;border-bottom:2px solid #dee2e6;margin-bottom:20px}.tab{padding:10px 20px;cursor:pointer;background:#f8f9fa;border:1px solid #dee2e6;border-bottom:none;margin-right:2px;border-radius:4px 4px 0 0}.tab.active{background:#007bff;color:white;border-color:#007bff}.tab-content{display:none}.tab-content.active{display:block}.race-group h2{color:black;background-color:gold;padding:10px;text-align:center;border-radius:4px;margin-top:25px}.race{border:1px solid #ddd;padding:12px;margin:10px 0;border-radius:5px;background-color:#fafafa;border-left:5px solid #6c757d}.race.thoroughbred{border-left-color:#007bff}.race.harness{border-left-color:#17a2b8}.race.greyhound{border-left-color:#fd7e14}.head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:600;font-size:1.1em}.pill{display:inline-block;padding:3px 10px;border-radius:12px;background:#e9ecef;color:#495057;font-size:.85rem;font-weight:500}.links a{display:inline-block;text-decoration:none;background-color:#007bff;color:white;padding:6px 12px;border-radius:4px;margin-right:8px;font-size:.9em;margin-top:8px}.links a.alt{background:#28a745}.kv{font-size:.95rem;margin-top:8px;color:#555}.footer{text-align:center;margin-top:30px;font-size:.9em;color:#777}@media (prefers-color-scheme:dark){body{background-color:#121212;color:#e0e0e0}.container{background-color:#1e1e1e}h1{color:#e0e0e0;border-color:#4dabf7}.summary{background-color:#2c3e50;border-left-color:#4dabf7}.tabs{border-color:#444}.tab{background:#333;color:#ccc;border-color:#444}.tab.active{background:#4dabf7;color:#000;border-color:#4dabf7}.race{background-color:#2a2a2a;border-color:#444}.pill{background:#333;color:#ccc}.kv{color:#bbb}.links a{background-color:#4dabf7;color:#000}.links a.alt{background:#2ecc71}}</style>
         <script>function showTab(t){document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));document.querySelectorAll(".tab").forEach(c=>c.classList.remove("active"));document.getElementById(t).classList.add("active");document.querySelector(`[onclick="showTab('${t}')"]`).classList.add("active")}document.addEventListener("DOMContentLoaded",()=>showTab("filtered"));</script>"""
-        
+
         header = f"<h1>Global Racing Scanner Report V3.1</h1>"
         source_counts = stats.get('per_source_counts', {})
         summary_stats = f"Found <b>{len(all_races)}</b> total races from <b>{len(source_counts)}</b> sources. <b>{len(filtered_races)}</b> races match filter. Runtime: <b>{stats.get('duration_seconds',0):.1f}s</b>."
         summary = f"<div class='summary'>{summary_stats}</div>"
         tabs = f"""<div class="tabs"><div class="tab" onclick="showTab('filtered')">🎯 Filtered Races ({len(filtered_races)})</div><div class="tab" onclick="showTab('all')">⭐ All Races by Value ({len(all_races)})</div></div>"""
-        
+
         filtered_content = "<div id='filtered' class='tab-content'>"
         if not filtered_races: filtered_content += "<p>No races found matching the filter criteria.</p>"
         else:
@@ -680,7 +766,7 @@ class OutputManager:
                     last_field_size = r.field_size
                 filtered_content += self._render_race_block(r, icons)
         filtered_content += "</div>"
-        
+
         all_content = "<div id='all' class='tab-content'>"
         if not all_races: all_content += "<p>No races found from any source.</p>"
         else:
@@ -708,7 +794,7 @@ async def _amain(args):
     logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s: %(message)s", force=True)
     if args.insecure_ssl: urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     if args.disable_browser_fetch: os.environ["DISABLE_BROWSER_FETCH"] = "1"
-    
+
     start_dt = datetime.now() - timedelta(days=args.days_back)
     end_dt = datetime.now() + timedelta(days=args.days_forward)
 

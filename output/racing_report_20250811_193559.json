@@ -1,0 +1,42 @@
+{
+  "schema_version": "3.1",
+  "generated_at": "2025-08-11T19:35:59",
+  "config": {
+    "cache_dir": ".cache",
+    "concurrency": 12,
+    "thresholds": {
+      "min_field_size": 4,
+      "max_field_size": 6,
+      "min_fav_fractional": 1.0,
+      "min_second_fav_fractional": 3.0,
+      "min_odds_ratio": 0.0
+    },
+    "formats": [
+      "html",
+      "json"
+    ],
+    "no_cache": false,
+    "insecure_ssl": false,
+    "no_http2": false
+  },
+  "statistics": {
+    "cache_hits": 0,
+    "cache_misses": 34,
+    "http_success": 0,
+    "http_retries": 0,
+    "http_blocked": 0,
+    "fallback_success": 0,
+    "browser_attempts": 0,
+    "browser_success": 0,
+    "races_total": 0,
+    "duration_seconds": 2.771220185999937,
+    "per_source_counts": {
+      "AtTheRacesSource": 0,
+      "SkySportsSource": 0,
+      "GBGreyhoundSource": 0,
+      "HarnessRacingAustraliaSource": 0,
+      "StandardbredCanadaSource": 0
+    }
+  },
+  "races": []
+}

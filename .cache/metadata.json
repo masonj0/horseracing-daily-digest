@@ -1,0 +1,166 @@
+{
+  "6a9cd5abd298f79ac5a6ca63": {
+    "url": "https://www.sportinglife.com/greyhounds/racecards",
+    "cached_at": "2025-08-11T19:36:45.529066",
+    "expires": 1754941065.52908,
+    "headers": {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=1",
+      "etag": "\"v7q1nge3ss4pg1\""
+    }
+  },
+  "57090aff05778286dbf994d6": {
+    "url": "https://www.skysports.com/racing/racecards",
+    "cached_at": "2025-08-11T19:36:45.774159",
+    "expires": 1754941185.774172,
+    "headers": {
+      "content-type": "text/html; charset=UTF-8",
+      "cache-control": "public, max-age=180, s-maxage=180"
+    }
+  },
+  "833db831be68241f9b37f634": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/ireland/20250811",
+    "cached_at": "2025-08-11T19:36:46.017330",
+    "expires": 1754941606.017342,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "d2a4d99feb9855694c951ddf": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/uk/20250811",
+    "cached_at": "2025-08-11T19:36:46.119911",
+    "expires": 1754941606.119923,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "ce503e757c8e4905b1aa955d": {
+    "url": "https://standardbredcanada.ca/racing/entries/date/2025-08-11",
+    "cached_at": "2025-08-11T19:36:46.416368",
+    "expires": 1754941606.41638,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "bdb586ba581ea637917cd519": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/usa/20250811",
+    "cached_at": "2025-08-11T19:36:46.501570",
+    "expires": 1754941606.501611,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "faa5d5657fdba84b5987e25d": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/france/20250811",
+    "cached_at": "2025-08-11T19:36:46.763508",
+    "expires": 1754941606.763519,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "33844b1f05cd16e63108a03f": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/saf/20250811",
+    "cached_at": "2025-08-11T19:36:47.099350",
+    "expires": 1754941607.09936,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "ac148ca8f0dcc57f9baf815e": {
+    "url": "https://www.harness.org.au/racing/fields/?firstDate=11/08/2025",
+    "cached_at": "2025-08-11T19:36:47.159989",
+    "expires": 1754942807.159999,
+    "headers": {
+      "content-type": "text/html;charset=UTF-8"
+    }
+  },
+  "097036fb5702310161b3af88": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/aus/20250811",
+    "cached_at": "2025-08-11T19:36:47.303366",
+    "expires": 1754941607.303377,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "57f8f99e2569bc135f15fab3": {
+    "url": "https://standardbredcanada.ca/racing/entries/date/2025-08-12",
+    "cached_at": "2025-08-11T19:36:47.461948",
+    "expires": 1754941607.461998,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "1d1e60ce6c837979ab84a789": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/uk/20250812",
+    "cached_at": "2025-08-11T19:36:48.157840",
+    "expires": 1754941608.15785,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "097a8f4fdda27503a939ffeb": {
+    "url": "https://www.harness.org.au/racing/fields/race-fields/?mc=AP120825",
+    "cached_at": "2025-08-11T19:36:48.221734",
+    "expires": 1754942808.221743,
+    "headers": {
+      "content-type": "text/html;charset=UTF-8"
+    }
+  },
+  "a2265570971c2dcb26f1a9b9": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/usa/20250812",
+    "cached_at": "2025-08-11T19:36:48.284555",
+    "expires": 1754941608.284566,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "9609b35cd33d887347592401": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/ireland/20250812",
+    "cached_at": "2025-08-11T19:36:48.393696",
+    "expires": 1754941608.393707,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "a3bb7791f2065c5926bc162b": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/france/20250812",
+    "cached_at": "2025-08-11T19:36:48.772788",
+    "expires": 1754941608.772798,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "a16616868b0e9f4063fe0ccd": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/saf/20250812",
+    "cached_at": "2025-08-11T19:36:49.110963",
+    "expires": 1754941609.110974,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "afbccd24a3f70513a9ba7eda": {
+    "url": "https://www.attheraces.com/ajax/marketmovers/tabs/aus/20250812",
+    "cached_at": "2025-08-11T19:36:49.318364",
+    "expires": 1754941609.318376,
+    "headers": {
+      "cache-control": "max-age=600"
+    }
+  },
+  "9f3986e2ba91599660b872da": {
+    "url": "https://www.harness.org.au/racing/fields/?firstDate=12/08/2025",
+    "cached_at": "2025-08-11T19:36:49.550605",
+    "expires": 1754942809.550615,
+    "headers": {
+      "content-type": "text/html;charset=UTF-8"
+    }
+  },
+  "f1eee4073be18c3ba9824f18": {
+    "url": "https://www.racingandsports.com.au/todays-racing-json-v2",
+    "cached_at": "2025-08-11T19:36:50.454690",
+    "expires": 1754942810.454701,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "private"
+    }
+  }
+}

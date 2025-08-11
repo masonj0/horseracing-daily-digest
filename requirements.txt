@@ -1,5 +1,7 @@
-requests
-certifi
-trafilatura
-curl-cffi
+aiofiles
 beautifulsoup4
+certifi
+curl-cffi
+httpx[http2]
+selenium
+undetected-chromedriver

@@ -21,6 +21,10 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 from curl_cffi.requests import Session as CurlCffiSession
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # --- Suppress SSL Warnings ---
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -45,14 +49,27 @@ def robust_fetch(url: str) -> str:
     except requests.exceptions.RequestException:
         print(f"   -> Standard request to {url} failed. Trying Chrome browser impersonation...")
 
-    # Attempt 2: "Browser" impersonation with Chrome
+    # Attempt 2: "More Human" Browser impersonation with Chrome
     try:
+        browser_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'en-US,en;q=0.9',
+            'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="110", "Chromium";v="110"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'none',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+        }
         session = CurlCffiSession(impersonate="chrome110")
-        response = session.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+        response = session.get(url, headers=browser_headers, timeout=30)
         response.raise_for_status()
         return response.text
     except Exception:
-        print(f"   -> Chrome impersonation failed. Trying iPhone impersonation...")
+        print(f"   -> Full browser impersonation failed. Trying iPhone impersonation...")
 
     # Attempt 3: "Browser" impersonation with iPhone User-Agent
     try:
@@ -60,7 +77,23 @@ def robust_fetch(url: str) -> str:
         response = requests.get(url, headers={'User-Agent': iphone_ua}, timeout=20, verify=False)
         response.raise_for_status()
         return response.text
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
+        print(f"   -> iPhone impersonation failed. Trying headless browser...")
+
+    # Attempt 4: Full Headless Browser (Nuclear Option)
+    try:
+        options = uc.ChromeOptions()
+        options.add_argument('--headless=new')
+        driver = uc.Chrome(options=options)
+        driver.get(url)
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        page_source = driver.page_source
+        driver.quit()
+        if page_source:
+            return page_source
+        else:
+            raise ConnectionError("Headless browser returned empty content.")
+    except Exception as e:
         raise ConnectionError(f"All fetch methods failed for {url}") from e
 
 def normalize_track_name(name: str) -> str:
@@ -272,9 +305,8 @@ def generate_unified_report(races: list[dict]):
 
     # --- Part 2: HTML Report Generation ---
     print("\n📄 Generating unified HTML report...")
-    title = "Global Racing Digest"
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    filename = f"Global_Racing_Digest_{timestamp}.html"
+    title = "Utopian Racing Chronicle"
+    filename = "Utopian_Racing_Chronicle.html"
 
     html_css = """<style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; color: #212529; margin: 20px; }

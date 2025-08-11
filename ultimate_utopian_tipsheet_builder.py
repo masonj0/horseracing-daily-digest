@@ -646,6 +646,10 @@ def get_best_available_races():
     Attempts to fetch race data from the best available source in a specific order.
     Implements a graceful fallback chain.
     """
+    # --- Future Development Note ---
+    # Greyhound data source gbgb.org.uk was investigated but proved difficult to
+    # analyze due to network issues and dynamic content. It could be a valuable
+    # source for UK greyhound racing if revisited.
     # --- Attempt 1: Primary API (AtTheRaces) ---
     try:
         print("\n--- Attempting Primary Source: AtTheRaces API ---")

@@ -606,7 +606,43 @@ def main():
 
     # Generate the single, unified report
     if master_race_list:
-        generate_unified_report(master_race_list)
+        print(f"\n🔍 Applying filters to {len(master_race_list)} races...")
+        now_utc = datetime.now(ZoneInfo("UTC"))
+        now_naive = datetime.now()
+
+        filtered_races = []
+        for race in master_race_list:
+            # Filter 1: Field size must be 7 or less
+            if race.get('field_size', 99) > 7:
+                continue
+
+            # Filter 2: Race must be in the future
+            race_dt_str = race.get('datetime_utc')
+            if not race_dt_str:
+                continue
+
+            is_future_race = False
+            try:
+                if 'Z' in race_dt_str or '+' in race_dt_str:
+                    race_dt = datetime.fromisoformat(race_dt_str.replace('Z', '+00:00'))
+                    if race_dt > now_utc:
+                        is_future_race = True
+                else:
+                    race_dt = datetime.strptime(race_dt_str, '%Y-%m-%d %H:%M')
+                    if race_dt > now_naive:
+                        is_future_race = True
+            except ValueError:
+                continue # Skip races with unparsable time
+
+            if is_future_race:
+                filtered_races.append(race)
+
+        print(f"   ✅ Found {len(filtered_races)} races matching all criteria.")
+
+        if filtered_races:
+            generate_unified_report(filtered_races)
+        else:
+            print("\n❌ No future races matching the criteria were found.")
     else:
         print("\n❌ Could not retrieve data from any source. Exiting.")
 

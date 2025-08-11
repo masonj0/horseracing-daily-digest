@@ -1,0 +1,137 @@
+Handoff: Global Exotics Results Pipeline (beyond SkySports)
+Owner: AI teammate
+
+Goal
+- Build a robust, multi-source results pipeline that captures exotic dividends (CSF/Tricast/Exacta/Trifecta/Superfecta et al.) globally, filters to small fields with non-chalk favorites, and outputs JSON/CSV for tipsheet validation.
+
+Scope and priority
+- Start with UK/IE + US + AU/NZ + FR + HK; add ZA thereafter.
+- Target Thoroughbred first; support Greyhound and Harness where feasible.
+
+Existing feeds to leverage (from current codebase)
+- At The Races (ATR) market movers: Good for fav/2nd-fav snapshot and basic linking (course/date/time) → use to seed race identity and to build ATR results URLs.
+- DRF/FanDuel API: Reliable NA schedule with post times and entries → use for US race identity; later map to Equibase/DRF results for exotics.
+- Oddschecker HTML: Global card pages with odds/field hints → fallback identity and odds; not authoritative for results.
+
+Core architecture
+- sources/ (fetchers per site) → normalize/ (schema unifier) → results_merge/ (dedupe + provenance) → scoring/filter/ → outputs/ (JSON/CSV)
+- Keep fetchers stateless, idempotent, and rate-limited. Prefer JSON endpoints; use HTML parsing only when required.
+
+Canonical result schema (per race)
+- identity: course_name_raw, course_slug, country_code, local_date, local_time_str, race_number (optional), source_urls[]
+- size & time: field_size_declared, field_size_official, utc_datetime, tz_name
+- market: favorite_name, favorite_fractional, second_favorite_name, second_favorite_fractional
+- exotics (strings with currency preserved): csf, tricast, exacta, trifecta, superfecta, quinella, first4, tierce, quarte, quinte, quartet, quintet
+- meta: discipline (Thoroughbred/Greyhound/Harness), source_priority, parsed_at
+
+Timezone handling
+- Normalize to UTC using per-country default tz + per-track overrides for multi-tz countries (USA/AUS). Keep local time string as provided.
+- Scan a rolling 36–48h window globally to capture AUS/NZ/HK cross-date races.
+
+Source plan (results)
+1) UK/IE
+   - ATR results pages: `/racecard/{course-slug}/{YYYY-MM-DD}/{HHMM}/results`
+     - Parse official result table for runners, finishing positions, SPs.
+     - Extract CSF (Computer Straight Forecast) and Tricast from text blocks.
+   - Racing Post (Full Result pages): extract CSF/Tricast from results summary. Use as fallback/confirmatory.
+
+2) FR (France)
+   - PMU results (programme-courses and result pages): map products to normalized fields:
+     - Couplé Ordre → exacta; Trio Ordre → trifecta; Quarté+ → quarte; Quinté+ → quinte.
+   - Retain currency (usually €) and amounts as strings.
+
+3) AU / NZ
+   - TAB VIC/NSW + Racing.com (AU): dividends include Exacta, Quinella, Trifecta, First 4 (map First 4 → superfecta/first4).
+   - loveracing.nz (NZ): JSON/HTML with dividends for Exacta/Trifecta/First 4.
+
+4) HK
+   - HKJC: parse dividends section (Quinella, Exacta, Tierce → trifecta, First 4 → superfecta, Quartet → quartet).
+
+5) US/CA
+   - Equibase results pages: parse Exacta, Trifecta, Superfecta (and Super High 5 where present; ignore if uncommon).
+   - DRF result pages as fallback; mind access and robots.
+
+6) ZA (later)
+   - 4Racing/TABgold results: parse Exacta/Trifecta/Quartet.
+
+Greyhounds/Harness
+- UK Greyhounds: Sporting Life greyhounds or GBGB (if accessible) for results and CSF-like/Exacta pools where offered. AU Greyhounds: FastTrack/GRNSW (results dividends Trifecta/First4).
+- Harness: USTA/EHRA equivalents (may require headless browser). Only add after TB pipeline is stable.
+
+Identity and merge logic
+- Composite key: normalize(course_name) + date + race_time (rounded ±5–10 mins) + race_number (if available).
+- Prefer authoritative results by source priority per region:
+  UK/IE: ATR > Racing Post; US: Equibase > DRF; AU/NZ: TAB/Racing.com > others; FR: PMU; HK: HKJC.
+- Keep provenance per field; do not overwrite non-empty authoritative values.
+
+Exotics parsing
+- Use regex families per source to catch label variance, e.g.:
+  - CSF|Computer Straight Forecast
+  - Tricast|Computer Tricast
+  - Exacta|Tote Exacta|Couplé Ordre|Quinella
+  - Trifecta|Tierce|Trio Ordre
+  - First 4|First4|Superfecta (map First 4 → first4, and also set superfecta when appropriate)
+  - Quarté+|Quartet; Quinté+|Quinte
+- Preserve currency symbol and thousands separators in strings; avoid lossy normalization.
+
+Field size accuracy
+- Prefer official result page declared/official runners count; fallback to counting runner rows in results table.
+- As a secondary enrichment, load racecard pages to cross-check declared runners (helps with late scratches).
+
+Rate limiting, retries, and caching
+- Per-host limiter (e.g., 3–5 req/s burst, 1–2 sustained), exponential backoff on 429/5xx.
+- On-disk cache keyed by URL with TTL (e.g., 24h for historical results, 15m for near-live).
+- Rotate realistic desktop UAs; add optional proxy support.
+
+Filtering and scoring for validation
+- Configurable thresholds: max_field_size (default 7), min_fav_fractional (default 1.0 = EVS), optional min_odds_ratio = second/fav (e.g., ≥ 2.0).
+- Keep both boolean filter and a composite score for ranking (score by odds_ratio, non-chalk bonus, field_size bonus).
+
+Outputs
+- JSON: full normalized schema, including provenance and source_urls.
+- CSV: compact columns for analytics: date, course, time, field_size, fav, fav_frac, 2nd, 2nd_frac, csf, tricast, exacta, trifecta, superfecta/first4, tierce/quarte/quinte (where used), url_primary.
+- CLI flags: `--regions`, `--days-back`, `--max-field-size`, `--min-fav-fractional`, `--min-odds-ratio`, `--out-prefix`, `--enrich-limit`.
+
+Concrete coding steps
+1) Create modules:
+   - `sources/results_atr.py` (meeting index by date; race results; CSF/Tricast)
+   - `sources/results_rpost.py` (fallback; CSF/Tricast)
+   - `sources/results_pmu.py` (FR dividends mapping)
+   - `sources/results_tab_au.py` + `sources/results_racingdotcom.py` (AU dividends)
+   - `sources/results_nz.py` (loveracing.nz dividends)
+   - `sources/results_hkjc.py` (HK dividends mapping)
+   - `sources/results_equibase.py` (US exacta/trifecta/superfecta)
+2) Implement a `normalize/exotics.py` with mapping to canonical fields and currency-preserving strings.
+3) Implement `results_merge/merge.py` to dedupe by composite key and apply source priority.
+4) Add `cli/exotics_results.py` orchestrator with async httpx to fetch in parallel (limit concurrency by host).
+5) Add `filters/config.py` for thresholds; wire into CLI.
+6) Write unit tests for parsing functions (regex/unit) and for merger priority rules; add a small set of cached HTML/JSON fixtures.
+
+Low-impact improvements to existing functions
+- `universal_atr_scan`:
+  - Scan tomorrow for all non-EU regions (USA, CAN, AUS, NZ, SAF, HK).
+  - After building `race_url`, optionally fetch racecard to correct `field_size` with declared runners.
+  - Keep favorite and second_favorite from market movers.
+- `fetch_races_from_drf_api`:
+  - Prefer `currentOdds` fallback to `morningLineOdds`; normalize EVENS→EVS.
+  - Add `track_code` and `race_number` fields for downstream result matching.
+  - Keep both `datetime_utc` and a derived local-time string (per-track tz map when available).
+- `scrape_oddschecker`:
+  - Add greyhound index support behind a flag.
+  - If “Starters” not present, estimate field size by counting horse rows in the odds table.
+
+Headless/browser note
+- Prefer JSON/HTML static pages. Use headless only for sites with JS-only results (e.g., certain greyhound portals). Ensure Chrome binary path is configurable (env: `GOOGLE_CHROME_BIN`).
+
+Deliverables
+- New CLI: `python -m cli.exotics_results --days-back 2 --regions uk,ie,us,au,nz,fr,hk --max-field-size 7 --min-fav-fractional 1.0 --out-prefix exotics_{date}`
+- JSON/CSV side-by-side outputs; include match counts and simple ROI hooks (optional).
+
+Risks & mitigations
+- Site layout changes → keep selectors resilient; add multiple patterns and tests with fixtures.
+- Rate limits/blocks → rotate UAs, backoff, caching; optional proxy support.
+- Timezones → start with country defaults; maintain a track→tz override file that grows over time.
+
+Definition of done (phase 1)
+- UK/IE (ATR primary, RP fallback) + US (Equibase) + AU/NZ (TAB/Racing.com + loveracing) + FR (PMU) + HK (HKJC) producing non-empty exotics for the majority of races.
+- Filtered list of small-field, non-chalk races with populated CSF/Tricast/Exacta/Trifecta/Superfecta exported to JSON/CSV.

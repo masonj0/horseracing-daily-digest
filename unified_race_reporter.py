@@ -13,7 +13,7 @@ import os
 import re
 import time
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from urllib.parse import urljoin, urlparse
 
@@ -95,72 +95,78 @@ def universal_atr_scan(regions: list[str]):
     If it fails, it raises a ConnectionError.
     """
     print("\n🛰️ Performing Universal Scan from AtTheRaces...")
-    today_str_url = datetime.now().strftime('%Y-%m-%d')
-    today_str_atr = datetime.now().strftime('%Y%m%d')
-
     master_race_list = []
 
     for region in regions:
-        url = f"https://www.attheraces.com/ajax/marketmovers/tabs/{region}/{today_str_atr}"
-        print(f"-> Querying {region.upper()} races from: {url}")
+        # For Australia, check both today and tomorrow to account for timezone differences.
+        dates_to_check = [datetime.now()]
+        if region == 'aus':
+            dates_to_check.append(datetime.now() + timedelta(days=1))
 
-        try:
-            html_content = robust_fetch(url)
-        except ConnectionError as e:
-            print(f"   ❌ CRITICAL: Could not fetch data from AtTheRaces for region {region}. {e}")
-            # Raise an exception to be caught by the main orchestrator.
-            raise ConnectionError("Failed to connect to AtTheRaces.") from e
+        for date_to_scan in dates_to_check:
+            today_str_url = date_to_scan.strftime('%Y-%m-%d')
+            today_str_atr = date_to_scan.strftime('%Y%m%d')
 
-        soup = BeautifulSoup(html_content, 'html.parser')
-        race_captions = soup.find_all('caption', string=re.compile(r"^\d{2}:\d{2}"))
+            url = f"https://www.attheraces.com/ajax/marketmovers/tabs/{region}/{today_str_atr}"
+            print(f"-> Querying {region.upper()} races from: {url}")
 
-        for caption in race_captions:
-            race_name_full = caption.get_text(strip=True)
-            race_time_match = re.match(r"(\d{2}:\d{2})", race_name_full)
-            race_time = race_time_match.group(1) if race_time_match else None
-            if not race_time: continue
+            try:
+                html_content = robust_fetch(url)
+            except ConnectionError as e:
+                print(f"   ❌ CRITICAL: Could not fetch data from AtTheRaces for region {region}. {e}")
+                # Raise an exception to be caught by the main orchestrator.
+                raise ConnectionError("Failed to connect to AtTheRaces.") from e
 
-            course_header = caption.find_parent('div', class_='panel').find('h2')
-            course_name = course_header.get_text(strip=True) if course_header else None
-            if not course_name: continue
+            soup = BeautifulSoup(html_content, 'html.parser')
+            race_captions = soup.find_all('caption', string=re.compile(r"^\d{2}:\d{2}"))
 
-            race_table = caption.find_next_sibling('table')
-            if not race_table: continue
+            for caption in race_captions:
+                race_name_full = caption.get_text(strip=True)
+                race_time_match = re.match(r"(\d{2}:\d{2})", race_name_full)
+                race_time = race_time_match.group(1) if race_time_match else None
+                if not race_time: continue
 
-            horses = []
-            for row in race_table.find('tbody').find_all('tr'):
-                cells = row.find_all('td')
-                if not cells: continue
-                horse_name = cells[0].get_text(strip=True)
-                current_odds_str = cells[1].get_text(strip=True)
-                horses.append({
-                    'name': horse_name,
-                    'odds_str': current_odds_str,
-                    'odds_float': convert_odds_to_float(current_odds_str)
+                course_header = caption.find_parent('div', class_='panel').find('h2')
+                course_name = course_header.get_text(strip=True) if course_header else None
+                if not course_name: continue
+
+                race_table = caption.find_next_sibling('table')
+                if not race_table: continue
+
+                horses = []
+                for row in race_table.find('tbody').find_all('tr'):
+                    cells = row.find_all('td')
+                    if not cells: continue
+                    horse_name = cells[0].get_text(strip=True)
+                    current_odds_str = cells[1].get_text(strip=True)
+                    horses.append({
+                        'name': horse_name,
+                        'odds_str': current_odds_str,
+                        'odds_float': convert_odds_to_float(current_odds_str)
+                    })
+
+                if not horses: continue
+                horses.sort(key=lambda x: x['odds_float'])
+
+                course_slug = course_name.replace(' ', '-').lower()
+                time_slug = race_time.replace(':', '')
+                race_url = f"https://www.attheraces.com/racecard/{course_slug}/{today_str_url}/{time_slug}"
+
+                # Combine date and time to create a naive datetime object for sorting
+                # We don't know the original timezone, so this is the best we can do.
+                full_datetime_str = f"{today_str_url} {race_time}"
+
+                master_race_list.append({
+                    'course': course_name,
+                    'time': race_time,
+                    'datetime_utc': full_datetime_str, # Store the combined datetime string
+                    'field_size': len(horses),
+                    'country': region.upper(),
+                    'race_url': race_url,
+                    'favorite': horses[0] if len(horses) > 0 else None,
+                    'second_favorite': horses[1] if len(horses) > 1 else None,
+                    'data_source': 'AtTheRaces'
                 })
-
-            if not horses: continue
-            horses.sort(key=lambda x: x['odds_float'])
-
-            course_slug = course_name.replace(' ', '-').lower()
-            time_slug = race_time.replace(':', '')
-            race_url = f"https://www.attheraces.com/racecard/{course_slug}/{today_str_url}/{time_slug}"
-
-            # Combine date and time to create a naive datetime object for sorting
-            # We don't know the original timezone, so this is the best we can do.
-            full_datetime_str = f"{today_str_url} {race_time}"
-
-            master_race_list.append({
-                'course': course_name,
-                'time': race_time,
-                'datetime_utc': full_datetime_str, # Store the combined datetime string
-                'field_size': len(horses),
-                'country': region.upper(),
-                'race_url': race_url,
-                'favorite': horses[0] if len(horses) > 0 else None,
-                'second_favorite': horses[1] if len(horses) > 1 else None,
-                'data_source': 'AtTheRaces'
-            })
 
     print(f"✅ ATR Universal Scan complete. Found {len(master_race_list)} races globally.")
     return master_race_list

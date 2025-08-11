@@ -1,5 +1,9 @@
-requests
-certifi
-trafilatura
-curl-cffi
-beautifulsoup4
+httpx[http2]==0.27.2
+aiofiles==24.1.0
+beautifulsoup4==4.13.4
+undetected-chromedriver==3.5.5
+selenium==4.34.2
+pydantic==2.8.2
+aiosqlite==0.20.0
+fastapi==0.115.6
+uvicorn==0.30.6

@@ -159,6 +159,7 @@ def universal_atr_scan(regions: list[str]):
                 'race_url': race_url,
                 'favorite': horses[0] if len(horses) > 0 else None,
                 'second_favorite': horses[1] if len(horses) > 1 else None,
+                'data_source': 'AtTheRaces'
             })
 
     print(f"✅ ATR Universal Scan complete. Found {len(master_race_list)} races globally.")
@@ -234,13 +235,19 @@ def generate_unified_report(races: list[dict]):
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; color: #212529; margin: 20px; }
         .container { max-width: 1000px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         h1 { color: #343a40; text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 15px; }
-        .course-group { margin-bottom: 30px; }
-        .course-header { font-size: 1.8em; font-weight: bold; color: #495057; padding-bottom: 10px; border-bottom: 1px solid #e9ecef; margin-bottom: 15px; }
         .race-entry { border: 1px solid #dee2e6; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: #fff; }
         .race-entry.analytical-match { border-left: 5px solid #28a745; }
         .race-details { font-weight: bold; font-size: 1.1em; color: #343a40; margin-bottom: 10px; }
+        .race-details .course-name { font-size: 1.2em; color: #495057; }
         .race-links a, .race-links span { display: inline-block; text-decoration: none; padding: 8px 15px; border-radius: 4px; margin: 5px 10px 5px 0; font-weight: bold; min-width: 160px; text-align: center; }
-        a.atr-link { background-color: #007bff; color: white; } a.atr-link:hover { background-color: #0056b3; }
+        a.racecard-link { background-color: #17a2b8; color: white; }
+        a.racecard-link:hover { background-color: #138496; }
+        a.racecard-link.atr { background-color: #007bff; }
+        a.racecard-link.atr:hover { background-color: #0056b3; }
+        a.racecard-link.oddschecker { background-color: #ff8c00; }
+        a.racecard-link.oddschecker:hover { background-color: #cc7000; }
+        a.racecard-link.sky { background-color: #6c757d; }
+        a.racecard-link.sky:hover { background-color: #5a6268; }
         a.rs-link { background-color: #dc3545; color: white; } a.rs-link:hover { background-color: #c82333; }
         span.rs-ignored-tag { color: #6c757d; background-color: #fff; border: 1px solid #ccc; cursor: default; }
         .odds-info { background-color: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; margin-top: 10px; border-radius: 4px; }
@@ -254,50 +261,64 @@ def generate_unified_report(races: list[dict]):
     if not races:
         html_body += "<h3>No races found from any data source.</h3>"
     else:
-        races_by_course = {}
-        for race in races:
-            races_by_course.setdefault(f"{race['course']} ({race['country']})", []).append(race)
+        # Sort all races chronologically, removing course grouping
+        sorted_races = sorted(races, key=lambda r: r.get('datetime_utc', r.get('time', '')))
 
-        for course, course_races in sorted(races_by_course.items()):
-            html_body += f'<div class="course-group"><div class="course-header">{course}</div>'
-            for race in sorted(course_races, key=lambda r: r.get('datetime_utc', r.get('time', ''))):
-                display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
+        for race in sorted_races:
+            display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
+            course_details = f"{race['course']} ({race['country']})"
 
-                # Check for analytical match
-                is_match = False
-                if race.get('favorite'):
-                    field_size_ok = race['field_size'] < 7
-                    fav_odds_ok = race['favorite']['odds_float'] >= 1.0
-                    sec_fav = race.get('second_favorite')
-                    sec_fav_odds_ok = sec_fav and sec_fav['odds_float'] >= 3.0
-                    if field_size_ok and fav_odds_ok and sec_fav_odds_ok:
-                        is_match = True
+            # Check for analytical match
+            is_match = False
+            if race.get('favorite'):
+                field_size_ok = race['field_size'] < 7
+                fav_odds_ok = race['favorite']['odds_float'] >= 1.0
+                sec_fav = race.get('second_favorite')
+                sec_fav_odds_ok = sec_fav and sec_fav['odds_float'] >= 3.0
+                if field_size_ok and fav_odds_ok and sec_fav_odds_ok:
+                    is_match = True
 
-                match_class = "analytical-match" if is_match else ""
-                html_body += f'<div class="race-entry {match_class}">'
-                html_body += f'<p class="race-details">Race at {display_time} ({race["field_size"]} runners)</p>'
+            match_class = "analytical-match" if is_match else ""
+            html_body += f'<div class="race-entry {match_class}">'
+            html_body += f'<p class="race-details"><span class="course-name">{course_details}</span> - Race at {display_time} ({race["field_size"]} runners)</p>'
 
-                # Render based on available data
-                if race.get('favorite'):
-                    fav = race['favorite']
-                    sec_fav = race.get('second_favorite')
-                    html_body += '<div class="odds-info">'
-                    if is_match:
-                        html_body += '<p class="match-highlight">⭐ Analytical Match Found!</p>'
-                    html_body += f"<b>Favorite:</b> {fav['name']} (<b>{fav['odds_str']}</b>)<br>"
-                    if sec_fav:
-                        html_body += f"<b>2nd Favorite:</b> {sec_fav['name']} (<b>{sec_fav['odds_str']}</b>)"
-                    html_body += '</div>'
-                else:
-                    html_body += '<div class="race-links">'
-                    html_body += f'<a href="{race["race_url"]}" target="_blank" class="atr-link">Racecard Link</a>'
-                    if race.get("rs_link"):
-                        html_body += f'<a href="{race["rs_link"]}" target="_blank" class="rs-link">R&S Form</a>'
-                    else:
-                        html_body += '<span class="rs-ignored-tag">No R&S Form</span>'
-                    html_body += '</div>'
+            # --- Always show links ---
+            html_body += '<div class="race-links">'
+            source = race.get('data_source', 'Unknown')
+            link_text = "Racecard"
+            link_class = "racecard-link"
+            if source == 'AtTheRaces':
+                link_text = "ATR Racecard"
+                link_class += " atr"
+            elif source == 'Oddschecker':
+                link_text = "Oddschecker Card"
+                link_class += " oddschecker"
+            elif source == 'SkySports':
+                link_text = "Sky Racecard"
+                link_class += " sky"
+            elif source == 'rpb2b':
+                link_text = "Racecard (Sky)"
+                link_class += " sky"
 
+            html_body += f'<a href="{race["race_url"]}" target="_blank" class="{link_class}">{link_text}</a>'
+            if race.get("rs_link"):
+                html_body += f'<a href="{race["rs_link"]}" target="_blank" class="rs-link">R&S Form</a>'
+            else:
+                html_body += '<span class="rs-ignored-tag">No R&S Form</span>'
+            html_body += '</div>'
+
+            # --- Show odds info if available ---
+            if race.get('favorite'):
+                fav = race['favorite']
+                sec_fav = race.get('second_favorite')
+                html_body += '<div class="odds-info">'
+                if is_match:
+                    html_body += '<p class="match-highlight">⭐ Analytical Match Found!</p>'
+                html_body += f"<b>Favorite:</b> {fav['name']} (<b>{fav['odds_str']}</b>)<br>"
+                if sec_fav:
+                    html_body += f"<b>2nd Favorite:</b> {sec_fav['name']} (<b>{sec_fav['odds_str']}</b>)"
                 html_body += '</div>'
+
             html_body += '</div>'
 
     report_time = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
@@ -389,6 +410,7 @@ def scrape_oddschecker():
                 'race_url': race_url,
                 'favorite': horses[0] if len(horses) > 0 else None,
                 'second_favorite': horses[1] if len(horses) > 1 else None,
+                'data_source': 'Oddschecker'
             })
         except Exception as e:
             print(f"   ⚠️ Could not scrape race URL {race_url}: {e}")
@@ -447,6 +469,7 @@ def fetch_races_from_rpb2b_api():
                 'country': country_code,
                 'favorite': None,
                 'second_favorite': None,
+                'data_source': 'rpb2b'
             })
     return fallback_race_list
 
@@ -559,6 +582,7 @@ def scrape_sky_sports():
                 'country': country,
                 'favorite': None,
                 'second_favorite': None,
+                'data_source': 'SkySports'
             })
 
     print(f"✅ Sky Sports scrape complete. Found data for {len(all_races)} races.")

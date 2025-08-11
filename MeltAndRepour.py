@@ -968,12 +968,19 @@ class RacingDataAggregator:
             http2=not cfg.get("no_http2", False),
         )
         self.scorer = ValueScorer(cfg.get("thresholds", {}))
-        self.sources = [
-            AtTheRacesSource(self.http),
-            GBGreyhoundSource(self.http),
-            HarnessRacingAustraliaSource(self.http),
-            StandardbredCanadaSource(self.http),
-        ]
+        # Select sources from CLI
+        source_map = {
+            'atr': AtTheRacesSource(self.http),
+            'gbg': GBGreyhoundSource(self.http),
+            'hra': HarnessRacingAustraliaSource(self.http),
+            'sca': StandardbredCanadaSource(self.http),
+        }
+        selected = []
+        for key in str(cfg.get('sources', 'atr,gbg,hra,sca')).split(','):
+            key = key.strip().lower()
+            if key in source_map:
+                selected.append(source_map[key])
+        self.sources = selected or [AtTheRacesSource(self.http)]
         self.per_source_counts: Dict[str, int] = {}
 
     async def aclose(self):
@@ -991,7 +998,20 @@ class RacingDataAggregator:
             self.per_source_counts[src.name] = len(res)
             races.extend(res)
 
-        merged = self._dedupe_merge(races)
+        if self.cfg.get('no_dedupe'):
+            merged = races
+        else:
+            # adjust dedupe tolerance from CLI
+            tol = int(self.cfg.get('dedupe_tol_min', 5))
+            # temporarily monkey-patch tolerance for this call
+            orig_round = self._round_time
+            def _round_time_override(time_str: str, tol_min: int = tol):
+                return orig_round(time_str, tol)
+            self._round_time = _round_time_override  # type: ignore
+            try:
+                merged = self._dedupe_merge(races)
+            finally:
+                self._round_time = orig_round  # restore
         await self._enrich_rs_links(merged)
 
         for r in merged:
@@ -1015,6 +1035,8 @@ class RacingDataAggregator:
 
     def _round_time(self, time_str: str, tol_min: int = 5) -> str:
         try:
+            if tol_min <= 0:
+                return time_str
             t = datetime.strptime(time_str, "%H:%M")
             rounded = t.replace(minute=(t.minute // tol_min) * tol_min, second=0)
             return rounded.strftime("%H:%M")
@@ -1257,6 +1279,12 @@ async def _amain(args):
         "min_second_fav_fractional": args.min_second_fav_fractional,
         "min_odds_ratio": args.min_odds_ratio,
     }
+    # Recall mode: conservative networking and high recall defaults
+    if args.recall_mode:
+        args.no_http2 = True
+        args.concurrency = min(args.concurrency, 6)
+        args.disable_browser_fetch = True
+        args.no_dedupe = True
     cfg = {
         "cache_dir": args.cache_dir,
         "concurrency": args.concurrency,
@@ -1265,6 +1293,9 @@ async def _amain(args):
         "no_cache": args.no_cache,
         "insecure_ssl": args.insecure_ssl,
         "no_http2": args.no_http2,
+        "sources": args.sources,
+        "no_dedupe": args.no_dedupe,
+        "dedupe_tol_min": args.dedupe_tol_min,
     }
 
     t0 = time.perf_counter()
@@ -1305,6 +1336,11 @@ def parse_args():
     p.add_argument("--min-fav-fractional", type=float, default=1.0)
     p.add_argument("--min-second-fav-fractional", type=float, default=3.0)
     p.add_argument("--min-odds-ratio", type=float, default=0.0)
+    # dedupe / sources control
+    p.add_argument("--no-dedupe", action="store_true", help="Skip deduplication/merge (max recall)")
+    p.add_argument("--dedupe-tol-min", type=int, default=5, help="Minute tolerance for time rounding when deduping (0 disables rounding)")
+    p.add_argument("--sources", default="atr,gbg,hra,sca", help="Comma list of sources: atr,gbg,hra,sca")
+    p.add_argument("--recall-mode", action="store_true", help="Loosen settings for maximum recall (no-http2, concurrency<=6, disable browser)")
     # networking / cache toggles
     p.add_argument("--no-cache", action="store_true", help="Disable on-disk cache")
     p.add_argument("--insecure-ssl", action="store_true", help="Disable SSL verification (not recommended)")

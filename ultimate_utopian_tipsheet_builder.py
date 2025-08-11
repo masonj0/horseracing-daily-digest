@@ -305,8 +305,9 @@ def generate_unified_report(races: list[dict]):
 
     # --- Part 2: HTML Report Generation ---
     print("\n📄 Generating unified HTML report...")
-    title = "Utopian Racing Chronicle"
-    filename = "Utopian_Racing_Chronicle.html"
+    title = "Global Racing Digest"
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    filename = f"Global_Racing_Digest_{timestamp}.html"
 
     html_css = """<style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; color: #212529; margin: 20px; }
@@ -343,7 +344,18 @@ def generate_unified_report(races: list[dict]):
 
         for race in sorted_races:
             display_time = convert_utc_to_eastern(race.get('datetime_utc')) or f"{race.get('time', 'N/A').replace(':', 'h')} (Timezone Unknown)"
-            course_details = f"{race['course']} ({race['country']})"
+
+            race_type = race.get('race_type', 'Horse') # Default to Horse
+            if race_type == 'Horse':
+                race_icon = "🐎"
+            elif race_type == 'Greyhound':
+                race_icon = "🐕"
+            elif race_type == 'Harness':
+                race_icon = "🤸"
+            else:
+                race_icon = "🏁"
+
+            course_details = f"{race_icon} {race['course']} ({race['country']})"
 
             # Check for analytical match
             is_match = False

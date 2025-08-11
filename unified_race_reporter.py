@@ -33,8 +33,9 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 def robust_fetch(url: str) -> str:
     """
-    Attempts to fetch a URL using two methods: a standard request and a
-    browser-impersonating request via curl_cffi.
+    Attempts to fetch a URL using three methods: a standard request, a
+    Chrome browser-impersonating request, and finally an iPhone-impersonating
+    request.
     """
     # Attempt 1: Standard "robot" request
     try:
@@ -42,15 +43,24 @@ def robust_fetch(url: str) -> str:
         response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException:
-        print(f"   -> Standard request to {url} failed. Trying browser impersonation...")
+        print(f"   -> Standard request to {url} failed. Trying Chrome browser impersonation...")
 
-    # Attempt 2: "Browser" impersonation request
+    # Attempt 2: "Browser" impersonation with Chrome
     try:
         session = CurlCffiSession(impersonate="chrome110")
         response = session.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
         response.raise_for_status()
         return response.text
-    except Exception as e:
+    except Exception:
+        print(f"   -> Chrome impersonation failed. Trying iPhone impersonation...")
+
+    # Attempt 3: "Browser" impersonation with iPhone User-Agent
+    try:
+        iphone_ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
+        response = requests.get(url, headers={'User-Agent': iphone_ua}, timeout=20, verify=False)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
         raise ConnectionError(f"All fetch methods failed for {url}") from e
 
 def normalize_track_name(name: str) -> str:
@@ -83,6 +93,35 @@ def convert_utc_to_eastern(utc_dt_str: str) -> str:
     except (ValueError, TypeError):
         # Handle potential parsing errors
         return ""
+
+def convert_odds_to_float(odds_str: str) -> float:
+    """Converts fractional or decimal odds string to a float for sorting."""
+    if not isinstance(odds_str, str) or not odds_str.strip():
+        return 999.0
+
+    odds_str = odds_str.strip().upper().replace('-', '/')
+    if odds_str == 'SP':
+        return 999.0
+    if odds_str == 'EVS':
+        return 1.0
+
+    if '/' in odds_str:
+        try:
+            num, den = map(float, odds_str.split('/'))
+            if den == 0: return 999.0
+            return num / den
+        except (ValueError, ZeroDivisionError):
+            return 999.0
+
+    # Handle decimal odds as a fallback
+    try:
+        decimal_odds = float(odds_str)
+        if decimal_odds > 0:
+            return decimal_odds - 1.0
+    except ValueError:
+        pass
+
+    return 999.0
 
 # ==============================================================================
 # STEP 1: UNIVERSAL SCAN
@@ -339,6 +378,94 @@ def generate_unified_report(races: list[dict]):
         print(f"\n❌ Error saving the report: {e}")
 
 # ==============================================================================
+# NEW DATA SOURCE: DRF/FANDUEL API
+# ==============================================================================
+def fetch_races_from_drf_api():
+    """
+    Fetches race data from the DRF/FanDuel JSON API. This is a primary source
+    for North American race data with odds.
+    """
+    print("\nℹ️ Fetching data from DRF/FanDuel API...")
+
+    master_race_list = []
+    # Check today and tomorrow to get a complete picture
+    dates_to_check = [datetime.now(), datetime.now() + timedelta(days=1)]
+
+    for date_to_scan in dates_to_check:
+        date_str = date_to_scan.strftime('%Y-%m-%d')
+        api_url = f"https://drf-api.akamaized.net/api/card/list?cardDate={date_str}"
+        print(f"-> Querying DRF API for {date_str}: {api_url}")
+
+        try:
+            api_text = robust_fetch(api_url)
+            api_data = json.loads(api_text)
+        except (ConnectionError, json.JSONDecodeError) as e:
+            print(f"   ❌ Failed to fetch or parse from DRF API for {date_str}: {e}")
+            continue
+
+        if not isinstance(api_data, list):
+            print(f"   ⚠️ DRF API response for {date_str} is not a list. Skipping.")
+            continue
+
+        for meeting in api_data:
+            course_name = meeting.get('trackName')
+            country_code = meeting.get('country')
+            races = meeting.get('races')
+
+            if not all([course_name, country_code, races]) or not isinstance(races, list):
+                continue
+
+            for race in races:
+                race_num = race.get('raceNumber')
+                post_time_str = race.get('postTime') # Full datetime string
+                entries = race.get('entries')
+
+                if not all([race_num, post_time_str, entries]) or not isinstance(entries, list):
+                    continue
+
+                track_code = meeting.get('trackId', '').upper()
+                race_url = f"https://racing.fanduel.com/race-card/{track_code}/{date_str}/R{race_num}"
+
+                horses = []
+                for entry in entries:
+                    horse_name = entry.get('horseName')
+                    # Odds can be in a few places, try to find them
+                    odds_str = entry.get('morningLineOdds') or entry.get('currentOdds')
+
+                    if horse_name and odds_str:
+                         horses.append({
+                            'name': horse_name,
+                            'odds_str': str(odds_str),
+                            'odds_float': convert_odds_to_float(str(odds_str))
+                        })
+
+                if not horses:
+                    continue
+
+                horses.sort(key=lambda x: x['odds_float'])
+
+                # Extract just the time for the 'time' field
+                try:
+                    time_only = datetime.fromisoformat(post_time_str.replace('Z', '+00:00')).strftime('%H:%M')
+                except ValueError:
+                    time_only = "N/A"
+
+                master_race_list.append({
+                    'course': course_name,
+                    'time': time_only,
+                    'datetime_utc': post_time_str,
+                    'field_size': len(horses),
+                    'country': country_code,
+                    'race_url': race_url,
+                    'favorite': horses[0] if len(horses) > 0 else None,
+                    'second_favorite': horses[1] if len(horses) > 1 else None,
+                    'data_source': 'DRF/FanDuel'
+                })
+
+    print(f"✅ DRF/FanDuel API scan complete. Found {len(master_race_list)} races.")
+    return master_race_list
+
+# ==============================================================================
 # FALLBACK DATA SOURCE #1: ODDSCHECKER
 # ==============================================================================
 def scrape_oddschecker():
@@ -492,24 +619,35 @@ def get_best_available_races():
         print("\n--- Attempting Primary Source: AtTheRaces API ---")
         atr_regions = ['uk', 'ireland', 'usa', 'france', 'saf', 'aus']
         master_race_list = universal_atr_scan(atr_regions)
+        if not master_race_list: raise ConnectionError("ATR returned no data.")
         print("\n✅ Primary source successful. Using rich data from AtTheRaces.")
         return master_race_list
     except ConnectionError as e:
         print(f"\n⚠️ {e} Moving to fallback source #1.")
 
-    # --- Attempt 2: Fallback Scraper (Oddschecker) ---
+    # --- Attempt 2: DRF/FanDuel API ---
     try:
-        print("\n--- Attempting Fallback Source #1: Oddschecker Scraper ---")
+        print("\n--- Attempting Fallback Source #1: DRF/FanDuel API ---")
+        master_race_list = fetch_races_from_drf_api()
+        if not master_race_list: raise ConnectionError("DRF API returned no data.")
+        print("\n✅ DRF/FanDuel API successful. Using NA data with odds.")
+        return master_race_list
+    except ConnectionError as e:
+        print(f"\n⚠️ {e} Moving to fallback source #2.")
+
+    # --- Attempt 3: Fallback Scraper (Oddschecker) ---
+    try:
+        print("\n--- Attempting Fallback Source #2: Oddschecker Scraper ---")
         master_race_list = scrape_oddschecker()
         if not master_race_list: raise ConnectionError("Oddschecker returned no data.")
         print("\n✅ Oddschecker scrape successful. Using global data (no live odds).")
         return master_race_list
     except ConnectionError as e:
-        print(f"\n⚠️ {e} Moving to fallback source #2.")
+        print(f"\n⚠️ {e} Moving to fallback source #3.")
 
-    # --- Attempt 3: Fallback API (rpb2b.com) ---
+    # --- Attempt 4: Fallback API (rpb2b.com) ---
     try:
-        print("\n--- Attempting Fallback Source #2: rpb2b.com API ---")
+        print("\n--- Attempting Fallback Source #3: rpb2b.com API ---")
         master_race_list = fetch_races_from_rpb2b_api()
         if not master_race_list: raise ConnectionError("rpb2b.com API returned no data.")
         print("\n✅ rpb2b.com API successful. Using NA-only data.")
@@ -517,9 +655,9 @@ def get_best_available_races():
     except ConnectionError as e:
         print(f"\n⚠️ {e} Moving to final fallback source.")
 
-    # --- Attempt 4: Final Fallback Scraper (Sky Sports) ---
+    # --- Attempt 5: Final Fallback Scraper (Sky Sports) ---
     try:
-        print("\n--- Attempting Final Fallback Source #3: Sky Sports Scraper ---")
+        print("\n--- Attempting Final Fallback Source #4: Sky Sports Scraper ---")
         master_race_list = scrape_sky_sports()
         if not master_race_list: raise ConnectionError("Sky Sports scrape returned no data.")
         print("\n✅ Sky Sports scrape successful. Using global data (no live odds).")

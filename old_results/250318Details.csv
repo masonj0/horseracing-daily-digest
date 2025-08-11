@@ -1,0 +1,136 @@
+Id,MainID,FPos,DistBtn,CardNo,HorseName,Draw,SPFrom,SPTo,Age,Stone,Lbs,Favs,Aid,AgeWt,Jockey,Trainer,Allow
+1,1,1,,2,Star Artist,,9,2,6,11,6,2Fav,,6 11-6,J J Burke,H Morrison,
+2,1,2,2¼,1,Devon Dude,,1,5,5,11,6,Fav,,5 11-6,Adam Wedge,Evan Williams,
+3,1,3,2¼,3,Land Girl's Luck,,20,1,6,10,13,,,6 10-13,Liam Harrison,Max Comley,
+4,2,1,,2,J J Moon,,1,14,6,11,7,Fav,,6 11-7,H Cobden,Miss E C Lavelle,
+5,2,2,½,1,Dino Magic (FR),,13,2,6,11,2,2Fav,t  ,6 11-2  t,Jay Tidball,P F Nicholls,5
+6,3,1,,5,The Widdow Maker,,15,8,11,10,8,2Fav,t  ,11 10-8  t,Jack Tudor,J Tizzard,
+7,3,2,½,4,Spyglass Hill,,14,1,12,11,0,,t  ,12 11-0  t,C Gethings,F Brennan,
+8,3,3,6,1,Annsam,,7,2,10,12,0,,,10 12-0,Adam Wedge,Evan Williams,
+9,3,4,1¼,3,Le Ligerien (FR),,6,5,12,11,1,Fav,t  ,12 11-1  t,Brendan Powell,J Tizzard,
+10,4,1,,4,Tiny Tetley,,11,8,7,11,8,Fav,,7 11-8,M G Nolan,P Hobbs & J White,
+11,4,2,2¾,1,Dans Le Vent (FR),,13,2,12,11,13,,,12 11-13,Isabel Williams,Evan Williams,3
+12,4,3,23,5,Cooleenymore,,7,4,9,10,9,2Fav,p  ,9 10-9  p,Harry Kimber,R Walford,
+13,4,4,20,3,Magical Escape,,5,1,7,11,11,,p  ,7 11-11  p,Thomas Bellamy,K Bailey & M Nicholls,
+14,5,1,,4,Night Duty,,5,1,9,11,8,,p  ,9 11-8  p,J J Burke,F O'Brien,
+15,5,2,hd,2,Teorie,,6,1,5,11,3,,,5 11-3,Mr Robbie David,Daisy Hitchins,7
+16,5,3,7½,1,Striking A Pose,,9,2,9,12,0,J2Fav,b  ,9 12-0  b,Brendan Powell,J Tizzard,
+17,5,4,1½,8,Iris Des Issards (FR),,9,2,7,10,12,J2Fav,p1  ,7 10-12  p1,Mr Joshua Newman,K Woollacott,5
+18,5,5,26,3,The Long Point,,15,8,6,11,10,Fav,,6 11-10,H Cobden,Miss E C Lavelle,
+19,5,6,11,7,Asian Spice,,17,2,7,11,6,,,7 11-6,Charlie Deutsch,J D Frost,
+20,6,1,,6,Time To Bite,,13,2,10,10,7,,b  ,10 10-7  b,Bryan Carver,C Honour,
+21,6,2,8,1,Sea Invasion,,1,1,7,11,8,Fav,,7 11-8,Chad Bament,A J Honeyball,7
+22,6,3,4¾,4,Bertie Wooster,,9,2,7,11,9,J2Fav,p  ,7 11-9  p,Brendan Powell,J Tizzard,
+23,6,4,4¾,3,Tactical Affair (FR),,9,2,6,11,12,J2Fav,,6 11-12,Sam Twiston-Davies,W Greatrex,
+24,6,5,40,2,Flash Gorcombe,,9,1,8,11,12,,t  ,8 11-12  t,Harry Kimber,R Walford,
+25,6,6,39,7,Forget You Not (FR),,28,1,10,10,2,,t  ,10 10-2  (oh 9)   t,James Best,Miss J Du Plessis,
+26,7,1,,3,Knockmoylan,,30,100,10,11,12,Fav,t   h  ,10 11-12  t   h,Mr William Biddick,H Ryall,
+27,7,2,23,1,Grove Ash,,9,4,10,11,5,2Fav,,10 11-5,Miss Shannon Holmes,Mrs K M Sanderson,7
+28,8,1,,4,Bodygroove,,25,1,5,11,3,,h  ,5 11-3  h,Joshua Thompson,Micky Hammond,8
+29,8,2,2,1,V Twelve,,11,4,6,12,0,2Fav,,6 12-0,William Maggs,M Todhunter,
+30,8,3,2¼,5,Mister Smarty,,13,8,8,11,7,Fav,,8 11-7,Alan Doyle,Miss T Jackson,
+31,8,4,7,7,Genies Girl,,28,1,6,10,10,,,6 10-10,Tom Midgley,M Walford,
+32,8,5,12,3,Kingoftheswingerz,,9,2,6,11,9,,t   p  ,6 11-9  t   p,Bradley Harris,H Dickin,3
+33,8,6,nse,2,Serious Ego (GER),,25,1,12,11,10,,,12 11-10,Conor Rabbitt,N G Richards,3
+34,8,F,,6,Treasured Company,,4,1,9,10,9,,,9 10-9,Jack Power,Mrs S J Smith,3
+35,9,1,,4,Do Your Job,,10,1,11,11,2,,t   p  ,11 11-2  t   p,Lily Pinchin,C E Longsdon,
+36,9,2,4¼,2,Geryville (FR),,9,1,9,11,7,,b  ,9 11-7  b,B S Hughes,Micky Hammond,
+37,9,3,nk,3,Micks Jet,,7,4,7,11,1,Fav,p  ,7 11-1  p,Joe Williamson,P A Kirby,3
+38,9,4,1,5,William Cody,,10,3,8,11,2,,p  ,8 11-2  p,Paul O'Brien,Mrs P Sly,
+39,9,5,10,1,Bois Guillbert (FR),,9,4,6,11,9,2Fav,,6 11-9,P W Wadge,Miss Lucinda V Russell,
+40,10,1,,2,Audacious Annie,,6,4,6,11,6,Fav,,6 11-6,G Sheehan,Jamie Snowden,
+41,10,2,2¼,9,Realta Liath,,7,2,6,11,6,2Fav,,6 11-6,James Bowen,W Greatrex,
+42,10,3,½,12,Rose's Dart,,22,1,4,10,8,,,4 10-8,Jamie Hamilton,M & D Easterby,
+43,10,4,4¼,8,Parisian Fashion,,4,1,6,11,1,,,6 11-1,William Maggs,R Menzies,5
+44,10,5,½,7,Just Her Type,,14,1,5,11,1,,,5 11-1,Tom Broughton,Max Comley,5
+45,10,6,16,10,Star Of Hoiho,,28,1,6,11,6,,,6 11-6,Henry Brooke,O Greenall & J Guerriero,
+46,10,7,5,3,Ciakat,,25,1,7,10,13,,,7 10-13,Fern O'Brien,F O'Brien,7
+47,10,8,1½,1,Annacassar,,50,1,6,11,6,,,6 11-6,C J Todd,C & A Pogson,
+48,10,9,1¾,4,Forcetoreckonwith,,14,1,6,11,3,,,6 11-3,Toby Wynne,O Greenall & J Guerriero,3
+49,10,10,9,6,Isabel De Clare,,11,1,5,11,6,,,5 11-6,C O'Farrell,Micky Hammond,
+50,10,11,2,11,Waltzing Matilda (FR),,150,1,5,11,6,,,5 11-6,Danny McMenamin,G Boanas,
+51,10,PU,,5,Glen Affric,,300,1,5,11,3,,,5 11-3,Phillip Armson,Tracey Leeson,3
+52,11,1,,5,Kelce,,13,8,7,10,12,2Fav,p  ,7 10-12  p,C O'Farrell,N P Mulholland,
+53,11,2,3,4,De Tellers Fortune,,10,11,6,10,13,Fav,,6 10-13,James Bowen,N J Henderson,
+54,11,PU,,2,Lunar Discovery,,9,2,8,11,7,,,8 11-7,Charlotte Jones,James Moffatt,
+55,12,1,,2,Jukebox Fury,,11,8,6,11,13,Fav,,6 11-13,James Bowen,N J Henderson,
+56,12,2,4¼,9,Aazza,,14,1,9,11,2,,p  ,9 11-2  p,Craig Nichol,Paul Robson,
+57,12,3,7,3,Farmer Jimmy,,10,1,5,11,13,,,5 11-13,Jamie Hamilton,M Walford,
+58,12,4,1¾,8,Rickety Gate,,17,2,10,11,5,,,10 11-5,Danny McMenamin,N G Richards,
+59,12,5,7,7,Tees Comp's Clive,,40,1,7,11,4,,,7 11-4,Joe Williamson,G Boanas,3
+60,12,6,10,4,Helsgetaway,,14,1,6,11,12,,p1  ,6 11-12  p1,D R Fox,Miss Lucinda V Russell,
+61,12,7,¾,5,Skiffle Man,,5,2,6,11,12,2Fav,t   p  ,6 11-12  t   p,Harry Skelton,D Skelton,
+62,12,8,48,6,Jo Arengeot Bey Aa (FR),,33,1,6,11,3,,p1  ,6 11-3  p1,William Maggs,D McCain Jnr,5
+63,12,F,,10,Good Bye (GER),,8,1,10,10,13,,b  ,10 10-13  b,Harry Bannister,Miss S Ender,
+64,13,1,,3,White Riot (FR),,7,2,5,11,2,2Fav,,5 11-2,Kielan Woods,F O'Brien,
+65,13,2,8,6,The Mad Poet,,10,11,4,10,6,Fav,,4 10-6,Harry Skelton,D Skelton,
+66,13,3,2¼,1,Ballynoe Boy,,11,2,5,11,2,,,5 11-2,Danny McMenamin,N G Richards,
+67,13,4,9½,4,Crystal Force,,6,1,4,10,6,,,4 10-6,Henry Brooke,T H Weston,
+68,13,5,3½,5,L'insurge (FR),,14,1,4,10,6,,,4 10-6,Craig Nichol,Paul Robson,
+69,13,6,99,2,Gold Robber,,66,1,5,11,2,,,5 11-2,Harry Bannister,Miss S Ender,
+70,14,1,,4,Opera Score,4,6,5,3,8,11,Fav,,3 8-11,Harry Davies,S & E Crisford,
+71,14,2,4¾,3,Manyana Blue,2,11,1,3,8,11,,h1  ,3 8-11  h1,Hollie Doyle,Dr R Newland & J Insole,
+72,14,3,2¼,5,Victoria Harbour,3,6,4,3,8,11,2Fav,,3 8-11,S H James,K R Burke,
+73,14,4,nk,6,Warm Glow,5,13,2,3,8,11,,,3 8-11,Daniel Muscutt,J R Fanshawe,
+74,14,5,2¾,1,Damzon,6,200,1,6,9,13,,,6 9-13,Joe Leavy,H J Evans,3
+75,15,1,,2,Kento,2,4,1,4,9,1,,p  ,4 9-1  p,Jack Doughty,A W Carroll,3
+76,15,2,½,4,Rebel Star,4,7,2,4,9,4,,v1  ,4 9-4  v1,George Downing,R M H Cowell,
+77,15,3,¾,3,Under Curfew,1,15,8,9,9,4,Fav,v  ,9 9-4  v,Rossa Ryan,A W Carroll,
+78,15,4,1,1,Apache Star,3,2,1,6,9,6,2Fav,b  ,6 9-6  b,Billy Loughnane,D M Loughnane,
+79,16,1,,1,Aurora Majesty,6,1,1,3,9,8,Fav,,3 9-8,Hollie Doyle,A Watson,
+80,16,2,3½,4,Critical Aclaim,5,15,8,3,8,13,2Fav,,3 8-13,Finley Marsh,R Hughes,
+81,16,3,6,6,Up The Monk,3,33,1,3,8,11,,,3 8-11,Dylan Hogan,Jack Jones,
+82,16,4,¾,2,Aviano,4,5,1,3,9,4,,t  ,3 9-4  t,Marco Ghiani,M Botti,
+83,16,5,1,3,The Hrse Horse,1,18,1,3,9,1,,,3 9-1,Saffie Osborne,J A Osborne,
+84,16,6,21,5,Woburn,2,100,1,3,8,13,,,3 8-13,S D Bowen,M Murphy,
+85,17,1,,8,Bold Suitor,2,11,4,8,9,6,Fav,b  ,8 9-6  b,Georgia Dobie,Craig Benton,
+86,17,2,nk,5,Ravenglass,1,6,1,6,9,8,,b  ,6 9-8  (ex5)   b,Finley Marsh,A Wintle,
+87,17,3,shd,4,Devasboy,5,9,2,6,9,8,2Fav,,6 9-8,Billy Loughnane,M Appleby,
+88,17,4,3,10,Ajrad,4,12,1,7,9,3,,p  ,7 9-3  p,Lewis Edmunds,B R Millman,
+89,17,5,2¾,9,Coconut Bay,6,14,1,6,8,13,,,6 8-13,Millie Wonnacott,T Davidson,5
+90,17,6,nse,6,Voltaic,8,8,1,9,9,7,,v  ,9 9-7  v,Rossa Ryan,A W Carroll,
+91,17,7,3½,7,Candy Warhol (USA),10,9,1,6,9,6,,t   p  ,6 9-6  t   p,Joey Haynes,S Dixon,
+92,17,8,hd,2,Flying Star,3,12,1,5,9,9,,,5 9-9,Gina Mangan,John Berry,
+93,17,9,1½,1,Till It Shines,11,9,1,4,9,7,,b  ,4 9-7  (ex5)   b,Taylor Fisher,J S Moore,3
+94,17,10,½,3,Galileo Glass,7,20,1,6,9,8,,h   p1  ,6 9-8  h   p1,Jason Watson,Darryll Holland,
+95,17,11,6,11,Lupset Flossy Pop,9,33,1,5,9,0,,p  ,5 9-0  p,Hollie Doyle,G Brown,
+96,18,1,,6,Pessoa,3,3,1,6,9,5,JFav,,6 9-5,Finley Marsh,A Wintle,
+97,18,2,1,7,Match Anthem,1,3,1,4,9,5,JFav,v  ,4 9-5  v,L Morris,P Charalambous & J Clutterbuck,
+98,18,3,2,10,Barney's Bay,4,14,1,7,9,0,,v  ,7 9-0  (oh 1)   v,Lewis Edmunds,D Shaw,
+99,18,4,nse,1,Nevernay,8,14,1,4,9,6,,,4 9-6,William Pyle,K Frost,3
+100,18,5,1½,4,Bitcoin Profit,6,100,1,4,9,0,,h1  ,4 9-0  h1,Tyrese Cameron,M Young,7
+101,18,6,shd,5,Sam's Hope,2,13,2,5,9,7,,t  ,5 9-7  t,William Carson,A W Carroll,
+102,18,7,nk,9,Kapparis Kid,11,33,1,4,9,3,,,4 9-3,Aidan Keeley,B Lund,
+103,18,8,nk,2,Dumfries,9,13,2,5,9,8,,b  ,5 9-8  b,J P Sullivan,Mrs R Carr,
+104,18,9,shd,3,Pembrokeshire,10,7,1,5,9,7,,h   p1  ,5 9-7  h   p1,Rossa Ryan,M Appleby,
+105,18,10,2½,8,Heavenly Fire,5,14,1,4,9,4,,h  ,4 9-4  h,D Swift,S Dixon,
+106,18,11,2¼,11,Baroque Pearl,7,14,1,4,9,0,,,4 9-0  (oh 1),Hollie Doyle,Martin Dunne,
+107,19,1,,10,Flatley,8,22,1,8,9,6,,p  ,8 9-6  p,Finley Marsh,A Wintle,
+108,19,2,1,1,Mariner,6,10,3,4,9,9,2Fav,p  ,4 9-9  p,George Wood,J Candlish,
+109,19,3,nk,11,Charlatan,12,9,2,5,9,2,,,5 9-2,Callum Shepherd,D M Simcock,
+110,19,4,nk,6,Visibility,5,15,2,8,9,7,,,8 9-7,D Swift,S Dixon,
+111,19,5,nk,3,King Of Speed,1,9,2,6,9,8,,t  ,6 9-8  t,Billy Loughnane,D M Loughnane,
+112,19,6,2,7,Claxton Bay,3,11,4,4,9,7,Fav,v1  ,4 9-7  v1,Rossa Ryan,P D Evans,
+113,19,7,1½,2,Young Fire (FR),2,22,1,10,9,4,,v  ,10 9-4  v,C Horgan,D O'Meara,5
+114,19,8,2¼,5,Distinction,4,16,1,7,9,7,,v  ,7 9-7  v,P J McDonald,J Mackie,
+115,19,9,3¼,9,Tambourine Dream,9,28,1,4,9,6,,,4 9-6,Hector Crouch,E A L Dunlop,
+116,20,1,,3,Rumba Bay,2,11,4,3,9,9,Fav,,3 9-9,Rossa Ryan,P D Evans,
+117,20,2,½,6,Woodhay Whisper,9,20,1,3,9,8,,h  ,3 9-8  h,Billy Loughnane,M Young,
+118,20,3,1¼,10,Trust Sergei,3,22,1,3,9,4,,,3 9-4,S D Bowen,G Hanmer,
+119,20,4,½,4,Elland Road Girl,7,66,1,3,9,2,,t  ,3 9-2  t,Alfie Redman,M Murphy,7
+120,20,5,hd,2,Royal Accord,4,7,2,3,9,9,2Fav,,3 9-9,Marco Ghiani,S C Williams,
+121,20,6,¾,12,Hala Joza,8,33,1,3,9,3,,,3 9-3,Hollie Doyle,Martin Dunne,
+122,20,7,½,11,Freak Encounter,10,11,2,3,9,3,,b  ,3 9-3  b,Saffie Osborne,J A Osborne,
+123,20,8,3¼,1,Bank On Kent,1,15,2,3,9,9,,,3 9-9,P J McDonald,P D Evans,
+124,20,9,nk,7,College Witch,11,33,1,3,9,1,,,3 9-1,Joe Bradnam,Mrs C A Dunnett,7
+125,20,10,2½,9,Due Respect,6,10,1,3,9,4,,,3 9-4,Daniel Muscutt,J Butler,
+126,20,11,2¼,5,Causin A Commotion,5,4,1,3,9,6,,t   p  ,3 9-6  t   p,O McSweeney,K A Ryan,3
+127,21,1,,8,Forest Spirit,8,11,10,4,9,4,Fav,,4 9-4,Hector Crouch,M L W Bell,
+128,21,2,¾,3,Dibble Dabble,5,16,1,4,9,7,,,4 9-7,Daniel Muscutt,J Ferguson,
+129,21,3,2¼,5,Miss Applejack,9,28,1,6,9,6,,,6 9-6,Rob Hornby,C E Longsdon,
+130,21,4,shd,4,Cloudside Rock,2,5,1,4,9,6,,,4 9-6,Hayley Turner,D M Simcock,
+131,21,5,1,6,Starfighter,6,9,1,9,9,5,,,9 9-5,Billy Loughnane,D M Loughnane,
+132,21,6,1,1,Aikhal,1,10,1,6,9,9,,t  ,6 9-9  t,Saffie Osborne,J A Osborne,
+133,21,7,7,2,Pysanka (FR),3,18,1,6,9,7,,p  ,6 9-7  p,Edward Greatrex,D M Loughnane,
+134,21,8,5½,9,Harry The Haggler,7,4,1,5,9,4,2Fav,t  ,5 9-4  t,Rossa Ryan,D Loughnane,
+135,21,9,14,7,Silk Bird,4,150,1,5,8,11,,p  ,5 8-11  p,Tyrese Cameron,M Young,7

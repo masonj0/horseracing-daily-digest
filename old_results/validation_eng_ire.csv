@@ -1,0 +1,134 @@
+source_file,date,time,course,race_desc,field_size,favorite,fav_fractional,second_favorite,second_fav_fractional,odds_ratio_second_over_fav,winner,winner_fractional,winner_return_on_1
+250310Main.csv,10-Mar-25,15:30,Plumpton,Horse PWR Novices' Limited Handicap Hurdle,5,Graham,1.50,Jorebel (FR),2.25,1.50,Lady Caro,3.00,4.00
+250310Main.csv,10-Mar-25,16:00,Plumpton,Hop Into Racing This Easter Handicap Hurdle,5,,,,,,La Dolce Dolly,7.00,8.00
+250310Main.csv,10-Mar-25,16:30,Plumpton,Book Our Season Finale Raceday Handicap Chase (GBB Race),3,Havaila,1.20,Basford,1.62,1.35,Havaila,1.20,2.20
+250310Main.csv,10-Mar-25,17:00,Plumpton,John Ellis Memorial Handicap Hurdle,7,Two To Tango,2.50,Lumi Plugin,2.75,1.10,Lumi Plugin,2.75,3.75
+250310Main.csv,10-Mar-25,14:20,Stratford,DragonBet Backing Our Opinion At Cheltenham Handicap Chase (GBB Race),6,El Granjero,2.00,Korus (FR),2.50,1.25,Sainte Doctor (FR),8.00,9.00
+250310Main.csv,10-Mar-25,15:20,Stratford,DragonBet Born From The Betting Ring Handicap Hurdle (Challenger Two Mile Hurdle Series Qualifier),7,Moon Chime,1.62,Golden Maverick (FR),3.00,1.85,Moon Chime,1.62,2.62
+250310Main.csv,10-Mar-25,15:50,Stratford,Best Odds Guaranteed On dragonbet.co.uk Handicap Chase (GBB Race),7,Non Stop (FR),2.75,,,,Yes Indeed (FR),8.00,9.00
+250310Main.csv,10-Mar-25,15:10,Taunton,DragonBet Backing Our Opinion At Cheltenham Handicap Hurdle,7,Sunninghill,2.50,Phoenix Risen,3.00,1.20,Sunninghill,2.50,3.50
+250310Main.csv,10-Mar-25,15:40,Taunton,DragonBet Backing Our Opinion At Cheltenham Handicap Chase (GBB Race),5,Bells Of Peterboro,2.00,Inis Oirr,2.25,1.12,Musical Slave,5.00,6.00
+250310Main.csv,10-Mar-25,17:10,Taunton,"DragonBet ""Hands And Heels"" Handicap Hurdle (Conditionals/Amateurs) (Racing Excellence Initiative)",7,Kintaro,1.50,Grenardier,3.33,2.22,Whatmakes Honey B,14.00,15.00
+250311Main.csv,11-Mar-25,14:58,Sedgefield,betvickers.com Supporting British Racing Handicap Chase (Go North One Man Series Qualifier),6,Fearless Action,2.50,Zara's Universe,4.00,1.60,Fearless Action,2.50,3.50
+250311Main.csv,11-Mar-25,15:38,Sedgefield,Heritage Drives The Goings Always Good Novices' Handicap Hurdle,5,Super Saint (FR),1.75,Love True (FR),2.25,1.29,Super Saint (FR),1.75,2.75
+250311Main.csv,11-Mar-25,16:18,Sedgefield,Fairlight Studio Celebration Day Handicap Chase (Go North Red Rum Series Qualifier) (GBB Race),4,Cave Article,1.00,Prince Cleni (FR),3.00,3.00,Ladronne (FR),3.50,4.50
+250311Main.csv,11-Mar-25,18:15,Southwell,Gamble Responsibly At BetUK Fillies' Handicap,6,Powdering,1.62,Ormolulu,2.25,1.38,Powdering,1.62,2.62
+250311Main.csv,11-Mar-25,18:30,Wolverhampton,BetMGM: It's Showtime Handicap,6,Harryella,1.00,Manton Road,2.12,2.12,Hock Eye The Noo,5.50,6.50
+250312Main.csv,12-Mar-25,14:58,Huntingdon,Join The 20 Club At Huntingdon Novices' Limited Handicap Hurdle,7,Youdecide,1.88,Grain Trade,2.25,1.20,Youdecide,1.88,2.88
+250312Main.csv,12-Mar-25,15:38,Huntingdon,2025 Season Tickets On Sale Now Handicap Chase,7,Stardhem,1.88,Kayce Dutton,2.75,1.47,Stardhem,1.88,2.88
+250312Main.csv,12-Mar-25,17:05,Newcastle,Free Bets With BetUK Bet Club Handicap,6,Comte De Loir (FR),2.50,High Court Judge (USA),3.33,1.33,Weddell Sea,4.00,5.00
+250312Main.csv,12-Mar-25,17:45,Newcastle,Weekly Free Bets With BetMGM Extra Fillies' Handicap,7,Sibyl Charm,1.50,Too Much,4.00,2.67,Too Much,4.00,5.00
+250312Main.csv,12-Mar-25,19:15,Newcastle,BetMGM: It's Showtime Handicap,6,Pallas Lord,2.00,Broken Spear,2.75,1.38,Broken Spear,2.75,3.75
+250312Main.csv,12-Mar-25,19:45,Newcastle,Gamble Responsibly At BetUK Handicap,5,,,,,,So Grateful,2.00,3.00
+250312Main.csv,12-Mar-25,20:15,Newcastle,Boost Your Acca At BetMGM Handicap,7,,,,,,Westernesse,3.00,4.00
+250312Main.csv,12-Mar-25,19:00,Wolverhampton,�30 In Free Bets With BetUK Acca Club Handicap (Div 2),7,,,,,,Prince Ali,11.00,12.00
+250313Main.csv,13-Mar-25,18:15,Chelmsford City,Bet Boost At bet365 Handicap,6,Southbank,1.75,Just Ten High,2.25,1.29,Brunel Charm,5.50,6.50
+250313Main.csv,13-Mar-25,18:45,Chelmsford City,Each Way Extra At bet365 Handicap,5,El Bufalo,1.88,Existent,2.50,1.33,Fidelius,2.75,3.75
+250313Main.csv,13-Mar-25,20:15,Chelmsford City,Download The bet365 App Handicap,6,Drifts Away,1.88,Stella Hogan,2.25,1.20,Drifts Away,1.88,2.88
+250313Main.csv,13-Mar-25,16:50,Newcastle,Gamble Responsibly At BetUK Classified Stakes (Div 1),7,Eva Rosie,2.25,Dee's Dream,2.50,1.11,Violeta,7.00,8.00
+250313Main.csv,13-Mar-25,17:30,Newcastle,Gamble Responsibly At BetUK Classified Stakes (Div 2),6,Ana Emaraaty,1.00,Spartan Times,1.75,1.75,Ana Emaraaty,1.00,2.00
+250313Main.csv,13-Mar-25,18:30,Newcastle,BetMGM: It's Showtime Restricted Maiden Stakes (For horses In Bands C And D) (GBB Race),6,Moby Quick,2.12,Oberon Hill,2.25,1.06,Camino Del Ray,6.50,7.50
+250313Main.csv,13-Mar-25,20:00,Newcastle,Free Bets With BetUK Bet Club Handicap,4,Pals Battalion,1.50,William Dewhirst,1.88,1.25,Pals Battalion,1.50,2.50
+250313Main.csv,13-Mar-25,14:54,Limerick (IRE),Ryans Cleaning Novice Handicap Chase,6,St Faz (FR),1.88,My Gaffer,2.75,1.47,Coming Up Easy,7.50,8.50
+250313Main.csv,13-Mar-25,15:34,Limerick (IRE),Ryans Cleaning Veterans Handicap Chase,7,Krabat,2.00,Flash De Touzaine (FR),3.50,1.75,Flash De Touzaine (FR),3.50,4.50
+250314Main.csv,14-Mar-25,15:02,Doncaster,Virgin Bet Daily Price Boosts Handicap Hurdle (Challenger Stayers Hurdle Series Qualifier),6,Burrows Hall (FR),1.38,Rialannah,4.00,2.91,Burrows Hall (FR),1.38,2.38
+250314Main.csv,14-Mar-25,16:25,Doncaster,Livescore Bet Best Odds Daily Mares' Handicap Chase,5,Baby Chou,2.12,Loud And Proud,3.00,1.41,Loud And Proud,3.00,4.00
+250314Main.csv,14-Mar-25,17:00,Doncaster,Livescore Bet Open Maiden National Hunt Flat Race (Category 3 Elimination) (GBB Race),7,Jaffa Cake,1.88,Noble George,2.75,1.47,Queen Kate,6.00,7.00
+250314Main.csv,14-Mar-25,13:35,Fakenham,Robert Case Memorial Maiden Hurdle (GBB Race),7,Dinofromberlais,2.20,Zafaan,3.33,1.52,Dinofromberlais,2.20,3.20
+250314Main.csv,14-Mar-25,14:14,Fakenham,Racing TV Mares' Handicap Chase (Queen Boudicca Mares' Chase Series Qualifier),4,Taxus Baccata,1.10,Rock On Rita,1.50,1.36,Rock On Rita,1.50,2.50
+250314Main.csv,14-Mar-25,14:54,Fakenham,Volt Low Alcohol Ipa @ Fakenham Racecourse Handicap Hurdle (For The Walter Wales Cup),6,Jackpot Cash (FR),2.50,Busy Being Busy,3.50,1.40,Busy Being Busy,3.50,4.50
+250314Main.csv,14-Mar-25,15:34,Fakenham,Woodfordes Wherry Champion Beer Mares' Handicap Hurdle,6,Remarkable Flight,2.75,Little Soiree,3.00,1.09,Remarkable Flight,2.75,3.75
+250314Main.csv,14-Mar-25,16:15,Fakenham,PH Betts (Holdings) Ltd Silver Cup Handicap Hurdle,7,Bluegrass,1.38,Admiralty House,5.00,3.64,Bluegrass,1.38,2.38
+250314Main.csv,14-Mar-25,18:20,Wolverhampton,Win �1M With BetMGM's Golden Goals Handicap,6,,,Bravo Zulu,2.50,,Bravo Zulu,2.50,3.50
+250314Main.csv,14-Mar-25,19:20,Wolverhampton,BetUK: It's Where The UK Bets Handicap (GBBPlus Race),7,Knockbrex,2.25,Rogue Tornado,3.00,1.33,Cardano (USA),12.00,13.00
+250314Main.csv,14-Mar-25,18:10,Dundalk (IRE),William Hill Top Price Guarantee Handicap,6,Theophilos,2.50,,,,Gracesolution,6.00,7.00
+250314Main.csv,14-Mar-25,20:10,Dundalk (IRE),William Hill Proper Pricing Handicap,7,Mehman,1.25,Daamberdiplomat,3.33,2.67,Harry's Bar,7.50,8.50
+250315Main.csv,15-Mar-25,13:37,Kempton,Virgin Bet Mares' Novices' Hurdle (Herring Queen Mares' Novices' Hurdle Series Qualifier) (GBB Race),6,Miss Altea Blue (FR),1.38,Anariza (FR),2.00,1.45,Timetoshine (FR),2.25,3.25
+250315Main.csv,15-Mar-25,14:10,Kempton,Virgin Bet Daily Price Boosts Novices' Limited Handicap Chase (GBB Race),5,First Street,1.62,Asta La Pasta,3.00,1.85,Teddy Blue (GER),3.50,4.50
+250315Main.csv,15-Mar-25,14:02,Newcastle,Guinness Draught Handicap Chase (Go North One Man Series Qualifier) (GBB Race),3,Electric Jet,1.25,Hold Onto The Line,2.00,1.60,Hold Onto The Line,2.00,3.00
+250315Main.csv,15-Mar-25,15:47,Newcastle,Smirnoff At Spy Bar Handicap Hurdle (Challenger Two Mile Hurdle Series Qualifier),4,Givemefive,1.10,Pay The Piper,3.00,2.73,Givemefive,1.10,2.10
+250315Main.csv,15-Mar-25,16:22,Newcastle,Guinness At The Canny Lad Handicap Chase (Go North Red Rum Series Qualifier),6,Jamesieconn,1.38,Hawkseye View,3.00,2.18,Halfway House Lad,4.00,5.00
+250315Main.csv,15-Mar-25,16:57,Newcastle,Pimm's At Ramside Open National Hunt Flat Race (Go North Jodami Series Qualifier) (GBB Race),5,Japetus,1.00,Hunters Spring,2.50,2.50,Japetus,1.00,2.00
+250315Main.csv,15-Mar-25,16:38,Southwell,Weekly Free Bets With BetMGM Extra Handicap,7,Gemmari,2.75,Scarlet Sunset,4.00,1.45,Gemmari,2.75,3.75
+250315Main.csv,15-Mar-25,17:13,Southwell,BetMGM: It's Showtime Fillies' Handicap,6,Gaiety Musical,2.25,Viennoise,3.50,1.56,Bellarchi,5.00,6.00
+250315Main.csv,15-Mar-25,18:15,Southwell,Best Odds Guaranteed At BetMGM Handicap,6,Good Banter,1.38,Saxonia,3.50,2.55,Well Enough,18.00,19.00
+250315Main.csv,15-Mar-25,16:45,Uttoxeter,JenningsBet Handicap Chase (GBB Race),6,Jupiter Des Bordes (FR),1.62,Zero Tolerance (GER),3.50,2.15,Intimate (FR),4.00,5.00
+250315Main.csv,15-Mar-25,17:30,Wolverhampton,BetUK: It's Where The UK Bets Handicap (GBB Plus Race),5,Wonder Legend,1.10,Plage De Havre,1.62,1.48,Wonder Legend,1.10,2.10
+250315Main.csv,15-Mar-25,18:30,Wolverhampton,Extra Winnings With BetUK Acca Club Handicap,7,Init Together,1.75,Come On John,3.00,1.71,Green Team (FR),5.50,6.50
+250315Main.csv,15-Mar-25,19:00,Wolverhampton,Weekly Free Bets With BetMGM Extra Maiden Fillies' Stakes (GBB Race),7,Kinswoman,1.38,French Sand,2.50,1.82,Scattering Light,9.00,10.00
+250315Main.csv,15-Mar-25,13:55,Thurles (IRE),Irish Stallion Farms EBF Mares Beginners Chase,7,Theatre Native,1.25,Miss Manzor,1.88,1.50,A Law Of Her Own,12.00,13.00
+250315Main.csv,15-Mar-25,16:15,Thurles (IRE),Jimmy Neville Memorial Hurdle,6,Hewick,1.38,Asterion Forlonge (FR),1.50,1.09,Hewick,1.38,2.38
+250316Main.csv,16-Mar-25,15:02,Chepstow,Download The Dragonbet App Handicap Chase (GBB Race),7,Militaire,3.00,Dreams Of Diamonds,3.33,1.11,Ask Brewster,4.00,5.00
+250316Main.csv,16-Mar-25,15:37,Chepstow,Terry's Birthday Mares' Handicap Hurdle (Qualifier),7,Shantwopointfive,2.50,,,,Greyval (FR),5.00,6.00
+250316Main.csv,16-Mar-25,16:12,Chepstow,Capital Windscreens Supports Autism Charity Novices' Handicap Chase (GBB Race),5,,,,,,Torneo (FR),2.25,3.25
+250316Main.csv,16-Mar-25,14:52,Market Rasen,Bet At racingtv.com Handicap Chase,6,Smart Casual,1.88,Mutual Respect,3.33,1.78,Too Cool Forshrule,4.50,5.50
+250316Main.csv,16-Mar-25,15:22,Market Rasen,Watch Race Replays At racingtv.com Novices' Handicap Hurdle,5,Gms Prince,1.88,Let's Sail Away,2.00,1.07,Let's Sail Away,2.00,3.00
+250316Main.csv,16-Mar-25,15:57,Market Rasen,100% RacingTV Profits Back To Racing Handicap Hurdle,6,Geordie Night,1.00,Wild Side Of Life,5.50,5.50,Grangeclare Diego,10.00,11.00
+250316Main.csv,16-Mar-25,16:32,Market Rasen,Get Daily Tips At racingtv.com Mares' Handicap Chase (Challenger Mares' Chase Qualifier) (GBB),6,Moonlit Potter,2.25,Gazette Bourgeoise (FR),4.00,1.78,Space Voyage,5.00,6.00
+250316Main.csv,16-Mar-25,13:40,Curragh (IRE),Castle Star At Capital Stud Irish EBF Maiden,7,Slaney View,1.62,Power Blue,2.50,1.54,Power Blue,2.50,3.50
+250317Main.csv,17-Mar-25,14:37,Fontwell,BetGoodwin Handicap Chase (GBB Race),5,Davidoc (FR),1.75,Diplomatic Ash,1.88,1.07,Diplomatic Ash,1.88,2.88
+250317Main.csv,17-Mar-25,15:12,Fontwell,V2 Radio Handicap Hurdle,5,Officer Of State,1.75,Continuance,2.25,1.29,Continuance,2.25,3.25
+250317Main.csv,17-Mar-25,16:20,Fontwell,NJS Group Handicap Chase,7,,,,,,Leading Swoop,2.75,3.75
+250317Main.csv,17-Mar-25,14:20,Southwell,Watch Unbridled On attheraces.com Handicap Chase (GBB Race),5,Ultra Beat,1.50,,,,Ali Star Bert,3.50,4.50
+250317Main.csv,17-Mar-25,14:55,Southwell,Grace And Dotty Fedora's And Feathers Novices' Handicap Chase,5,Harel Du Marais (FR),1.25,Gwennie May Jem (FR),1.62,1.30,Harel Du Marais (FR),1.25,2.25
+250317Main.csv,17-Mar-25,15:30,Southwell,Play At The Races Stableduel Novices' Hurdle (GBB Race),7,Jack Hyde,1.10,Escapologist (FR),2.50,2.27,Jack Hyde,1.10,2.10
+250317Main.csv,17-Mar-25,16:40,Southwell,Join Southwell Golf Club Handicap Hurdle,7,,,,,,Thank You Blue,20.00,21.00
+250317Main.csv,17-Mar-25,18:00,Wolverhampton,Boost Your Acca At BetMGM Novice Stakes (GBB Race) (Div 2),7,Excellent Believe,1.25,Warrior Mode,2.50,2.00,Warrior Mode,2.50,3.50
+250317Main.csv,17-Mar-25,16:12,Down Royal (NI),Bluegrass Horse Feed Rated Novice Chase,6,Spirit Of Legend (FR),2.00,Lightkeeper,3.00,1.50,Lightkeeper,3.00,4.00
+250318Main.csv,18-Mar-25,15:17,Exeter,Unibet Middle Distance Series Veterans' Handicap Chase (Qualifier),4,Le Ligerien (FR),1.20,The Widdow Maker,1.88,1.56,The Widdow Maker,1.88,2.88
+250318Main.csv,18-Mar-25,15:52,Exeter,Think Ireland - Think Thoroughbred Handicap Hurdle,4,Tiny Tetley,1.38,Cooleenymore,1.75,1.27,Tiny Tetley,1.38,2.38
+250318Main.csv,18-Mar-25,16:27,Exeter,Buy At Irish Bloodstock Sales Handicap Hurdle,6,The Long Point,1.88,,,,Night Duty,5.00,6.00
+250318Main.csv,18-Mar-25,17:02,Exeter,Experience Irish Racing With ITM Handicap Chase (GBB Race),6,Sea Invasion,1.00,,,,Time To Bite,6.50,7.50
+250318Main.csv,18-Mar-25,14:00,Wetherby,Best Ticket Prices Online At wetherbyracing.co.uk Conditional Jockeys' Handicap Hurdle,7,Mister Smarty,1.62,V Twelve,2.75,1.69,Bodygroove,25.00,26.00
+250318Main.csv,18-Mar-25,14:30,Wetherby,racingtv.com Handicap Chase (GBB Race),5,Micks Jet,1.75,Bois Guillbert (FR),2.25,1.29,Do Your Job,10.00,11.00
+250318Main.csv,18-Mar-25,16:55,Wolverhampton,Best Odds Guaranteed At BetMGM Fillies' Novice Stakes (GBB Race),5,Opera Score,1.20,Victoria Harbour,1.50,1.25,Opera Score,1.20,2.20
+250318Main.csv,18-Mar-25,17:25,Wolverhampton,�30 In Free Bets With BetUK Handicap,4,Under Curfew,1.88,Apache Star,2.00,1.07,Kento,4.00,5.00
+250318Main.csv,18-Mar-25,18:00,Wolverhampton,"Weekly Free Bets With BetMGM Extra Restricted Novice Stakes (Bands B, C And D) (GBB Race)",6,Aurora Majesty,1.00,Critical Aclaim,1.88,1.88,Aurora Majesty,1.00,2.00
+250319Main.csv,19-Mar-25,14:20,Haydock,Racing To School Novices' Limited Handicap Chase (GBB Race),1,,,,,,Yealand,,
+250319Main.csv,19-Mar-25,14:50,Haydock,Visit racingtv.com 'National Hunt' Maiden Hurdle (GBB Race),6,Pike Road,1.20,High Dancer,2.25,1.88,High Dancer,2.25,3.25
+250319Main.csv,19-Mar-25,15:50,Haydock,Le Willows Mares' Handicap Hurdle (Challenger Mares' Hurdle Series Qualifier),5,Eileen's Orders,1.50,Wrappedinrubies,2.25,1.50,Could Be Trouble,5.50,6.50
+250319Main.csv,19-Mar-25,16:25,Haydock,Tim Molony Handicap Chase (GBB Race),4,Duke Of Deception,1.25,Regarde,2.50,2.00,Regarde,2.50,3.50
+250319Main.csv,19-Mar-25,17:00,Haydock,Thank You Stephen Milton Handicap Hurdle,5,Typhoon Flyer,1.62,Diamond Koda,2.00,1.23,Typhoon Flyer,1.62,2.62
+250319Main.csv,19-Mar-25,17:35,Haydock,Racing TV Handicap Hurdle,5,Lune De La Mer,1.62,Minella Rescue,1.88,1.15,Imperial Merlin,6.50,7.50
+250319Main.csv,19-Mar-25,15:05,Huntingdon,Weatherbys Hamilton Handicap Hurdle,5,Tara Iti,1.38,Cuban Court,2.00,1.45,Cuban Court,2.00,3.00
+250319Main.csv,19-Mar-25,15:35,Huntingdon,Arkle Finance Handicap Chase,5,Tropical Talent,1.75,,,,Iskar D'airy (FR),2.75,3.75
+250319Main.csv,19-Mar-25,16:42,Huntingdon,weatherbysshop.co.uk Novices' Handicap Chase (GBB Race),5,Kapamazov,1.62,Camino Rocio,2.12,1.31,Camino Rocio,2.12,3.12
+250319Main.csv,19-Mar-25,20:30,Southwell,�30 In Free Bets With BetUK Handicap,7,Chief Mankato,2.00,Westmorian,2.25,1.12,Westmorian,2.25,3.25
+250320Main.csv,20-Mar-25,15:30,Chepstow,"Stephens Industries Elevate EPDM Mares' ""National Hunt"" Novices' Hurdle (GBB Race)",7,Hard As Nails,1.25,Jaminska (FR),2.50,2.00,Jaminska (FR),2.50,3.50
+250320Main.csv,20-Mar-25,15:55,Ludlow,Lycetts Insurance Novices' Handicap Chase (GBB Race),4,Idy Wood (FR),1.38,Rock House,1.75,1.27,Idy Wood (FR),1.38,2.38
+250320Main.csv,20-Mar-25,16:30,Ludlow,NFU Mutual Insurance Handicap Hurdle,7,Kado De Joie (FR),1.00,Mostly Sunny,4.50,4.50,Porter In The Park,5.50,6.50
+250320Main.csv,20-Mar-25,18:00,Newcastle,Weekly Free Bets With BetMGM Extra Handicap,7,Frankies Dream,2.25,Tolerance,3.00,1.33,Platinum Crystal,8.50,9.50
+250320Main.csv,20-Mar-25,19:00,Newcastle,BetUK: It's Where The UK Bets Handicap,7,Paddy's Day,2.50,Miss Attitude,3.00,1.20,Paddy's Day,2.50,3.50
+250320Main.csv,20-Mar-25,20:00,Newcastle,Extra Winnings With BetUK Acca Club Classified Stakes (Div 1),7,Korroor,1.25,Blackcurrent,5.00,4.00,Korroor,1.25,2.25
+250320Main.csv,20-Mar-25,20:30,Newcastle,Extra Winnings With BetUK Acca Club Classified Stakes (Div 2),7,Arlington,2.50,She'sashambles,2.75,1.10,Doon The Glen,3.00,4.00
+250320Main.csv,20-Mar-25,15:10,Sedgefield,Bet Vickers Handicap Chase (GBB Race),6,Siberian Star,1.75,Ballydisco,4.00,2.29,Old Page,6.00,7.00
+250320Main.csv,20-Mar-25,15:45,Sedgefield,Visit The New betvickers.com Website Handicap Hurdle,6,Born In The West,1.20,Musique De Fee,5.00,4.17,Musique De Fee,5.00,6.00
+250320Main.csv,20-Mar-25,16:53,Sedgefield,Paul Renshaw 'Fatty' Handicap Hurdle,6,Inferno Sacree (FR),2.75,Synchronist,3.33,1.21,Klitschko,4.00,5.00
+250321Main.csv,21-Mar-25,14:08,Ffos Las,3A's Leisure Caravans And Motorhomes Conditional Jockeys' Mares' Handicap Hurdle,7,Queen Of Steel,2.25,Bridget Mary,2.75,1.22,Queen Of Steel,2.25,3.25
+250321Main.csv,21-Mar-25,15:10,Ffos Las,3A's Horse Box Hire And Sales Mares' Handicap Chase,6,Princess Keri,1.62,Shesupincourt,1.88,1.15,Princess Keri,1.62,2.62
+250321Main.csv,21-Mar-25,16:50,Ffos Las,3A's Motorhome Hire Open Maiden National Hunt Flat Race (Category 3 Elimination) (GBB Race),5,Starzand,1.62,Whiskey Yankee,2.50,1.54,Starzand,1.62,2.62
+250321Main.csv,21-Mar-25,14:20,Musselburgh,Ladbrokes Best Odds Guaranteed On Racing Maiden Hurdle (GBB Race),6,Spit Spot,1.50,Lucky Manifest,2.25,1.50,Spit Spot,1.50,2.50
+250321Main.csv,21-Mar-25,15:20,Musselburgh,Ladbrokes Go North Grey Bomber Juvenile Hurdle Series Final (Handicap Hurdle) (GBB Race),6,Johnny Ringo,2.00,Belfrina,2.75,1.38,Inappropriate,5.00,6.00
+250321Main.csv,21-Mar-25,17:30,Musselburgh,Ladbrokes Get Rewarded With Ladbucks Mares' Open National Hunt Flat Race (Cat 2 Elimination) (GBB),7,Chanonry Point,1.88,Centurion's Sister,2.25,1.20,Chanonry Point,1.88,2.88
+250321Main.csv,21-Mar-25,14:30,Newbury,Focus Novices' Limited Handicap Chase (For The Brown Chamberlin Trophy) (GBB Race),7,Leave Of Absence (FR),2.25,Havaila,3.00,1.33,Leave Of Absence (FR),2.25,3.25
+250321Main.csv,21-Mar-25,15:30,Newbury,Ultimate Travel Company Handicap Hurdle (Challenger Stayers Hurdle Series Qualifier),6,Go To War,1.50,,,,Zain Nights,4.00,5.00
+250321Main.csv,21-Mar-25,16:02,Newbury,BetVictor A Run For Your Money At Handicap Chase (GBB Race),6,Muskoka,1.88,Kikijo (FR),2.50,1.33,The Boola Boss,4.00,5.00
+250321Main.csv,21-Mar-25,17:10,Newbury,Ultimate Travel Company Open Hunters' Chase,5,Itchy Feet (FR),1.75,Enrilo (FR),2.25,1.29,Rebel Dawn Rising,4.50,5.50
+250321Main.csv,21-Mar-25,19:00,Southwell,Weekly Free Bets With BetMGM Extra Handicap,7,Legal Reform,2.00,Blue Prince,2.50,1.25,Dutch Kingdom,14.00,15.00
+250322Main.csv,22-Mar-25,13:35,Bangor-On-Dee,Alfa Aggregates Products Handicap Hurdle (GBB Race),7,Gentleman Bill,3.33,,,,The Four Sixes,4.50,5.50
+250322Main.csv,22-Mar-25,16:02,Bangor-On-Dee,Voyager Camper Conversions Handicap Hurdle,5,Solar System (FR),2.25,Horsesomeharry,3.33,1.48,Andy Amo,3.50,4.50
+250322Main.csv,22-Mar-25,13:15,Kelso,Ladbrokes 'Best Odds Guaranteed On Racing' Handicap Chase (GBB Race),5,,,,,,Cadell,1.88,2.88
+250322Main.csv,22-Mar-25,13:50,Kelso,Ladbrokes 'Big-Value You Can Bet On' Mares' Hurdle (Listed Race) (Registered As The Beeswing) (GBB),6,Wyenot,1.38,Gale Mahler,3.00,2.18,Lavida Adiva,5.00,6.00
+250322Main.csv,22-Mar-25,16:10,Kelso,Ladbrokes 'Get Rewarded With Ladbucks' Novices' Hurdle (GBB Race),7,Rocheval (FR),1.20,Joecooker (FR),2.50,2.08,Malicash,6.00,7.00
+250322Main.csv,22-Mar-25,17:00,Newbury,Business Colleagues & Friends Handicap Chase (GBB Race),6,Javert Allen (FR),1.62,,,,Ballybreeze,8.50,9.50
+250322Main.csv,22-Mar-25,17:35,Newbury,BetVictor A Run For Your Money Handicap Chase (GBB Race),6,Rivers Corner,2.00,King's Threshold,2.12,1.06,King's Threshold,2.12,3.12
+250322Main.csv,22-Mar-25,16:53,Wolverhampton,Free Bets With BetUK Bet Club Handicap,7,Phoenix Beach,2.25,Gustav Graves,3.33,1.48,Phoenix Beach,2.25,3.25
+250322Main.csv,22-Mar-25,17:28,Wolverhampton,Best Odds Guaranteed At BetMGM Fillies' Handicap,6,Aiming High,2.00,Bajan Blue,2.75,1.38,Aiming High,2.00,3.00
+250322Main.csv,22-Mar-25,15:20,Navan (IRE),Irish Stallion Farms EBF Novice Hurdle,6,Butch Cassidy,2.00,C'est Ta Chance (FR),2.75,1.38,Cardcounter,3.50,4.50
+250322Main.csv,22-Mar-25,15:55,Navan (IRE),Navan Racecourse Maiden Hurdle,7,Autoportrait (FR),1.62,Butcher Hollow,3.00,1.85,Autoportrait (FR),1.62,2.62
+250323Main.csv,23-Mar-25,16:30,Carlisle,Racing Post Veterans' Handicap Chase (Qualifier) (Leg 3 Of The Stayers' Veterans' Chase Series),4,Credo,1.38,Dubai Days,2.25,1.64,Credo,1.38,2.38
+250323Main.csv,23-Mar-25,15:02,Exeter,Harcombe Handicap Hurdle,6,Special John,1.20,Coconut Twist,2.25,1.88,Coconut Twist,2.25,3.25
+250323Main.csv,23-Mar-25,16:13,Exeter,Devon Stayers Handicap Chase (GBB Race),4,Planned Paradise,2.00,Concetto (FR),2.50,1.25,Yes Day,3.33,4.33
+250323Main.csv,23-Mar-25,16:48,Exeter,Bet At racingtv.com Mares' Handicap Chase (Queen Boudicca Mares' Chase Series Qualifier),4,Minniemum,2.12,Micronormous,2.25,1.06,Minniemum,2.12,3.12
+250323Main.csv,23-Mar-25,17:23,Exeter,Point-To-Point Bumper Maiden National Hunt Flat Race (Category 3 Elimination) (GBB Race),4,Amatchmadeinheaven,1.75,Couer D'alene,1.88,1.07,Amatchmadeinheaven,1.75,2.75
+250323Main.csv,23-Mar-25,16:03,Limerick (IRE),Hugh McMahon Memorial Novice Chase (Grade 3),5,Fun Fun Fun,1.75,Monbeg Park,2.00,1.14,Fun Fun Fun,1.75,2.75

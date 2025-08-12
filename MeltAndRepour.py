@@ -1188,8 +1188,10 @@ class OutputManager:
             return False
         fav_f = convert_odds_to_fractional((r.favorite or {}).get("odds_str", ""))
         sec_f = convert_odds_to_fractional((r.second_favorite or {}).get("odds_str", ""))
+        # If odds are missing for fav or second fav, still include based on field size alone
         if fav_f == 999.0 or sec_f == 999.0:
-            return False
+            return True
+        # Apply non-chalk thresholds only when odds are present
         if fav_f < min_fav:
             return False
         if sec_f < min_sec:

@@ -31,6 +31,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from zoneinfo import ZoneInfo
 import time
 from urllib.parse import urlparse, urljoin
+import sys
 
 import httpx
 import aiofiles
@@ -1439,7 +1440,7 @@ async def _amain(args):
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     if args.disable_browser_fetch:
         os.environ["DISABLE_BROWSER_FETCH"] = "1"
-
+    
     start_dt = datetime.now() - timedelta(days=args.days_back)
     end_dt = datetime.now() + timedelta(days=args.days_forward)
 
@@ -1461,6 +1462,28 @@ async def _amain(args):
     }
     t0 = time.perf_counter()
     agg = RacingDataAggregator(cfg)
+    # Manual content injection: preload cache entries from files or stdin
+    try:
+        if getattr(args, "manual_kv", None):
+            for kv in args.manual_kv:
+                if "=" not in kv:
+                    logging.warning(f"--manual-kv entry malformed (expected url=path): {kv}")
+                    continue
+                url, path = kv.split("=", 1)
+                try:
+                    content = Path(path).read_text(encoding="utf-8", errors="ignore")
+                    if agg.cache:
+                        await agg.cache.set(url, content, headers={"cache-control": "max-age=3600"})
+                        logging.info(f"Preloaded manual content for {url} from {path}")
+                except Exception as e:
+                    logging.error(f"Failed to load manual file for {url}: {e}")
+        if getattr(args, "manual_stdin_url", None):
+            pasted = sys.stdin.read()
+            if pasted and agg.cache:
+                await agg.cache.set(args.manual_stdin_url, pasted, headers={"cache-control": "max-age=3600"})
+                logging.info(f"Preloaded manual content for {args.manual_stdin_url} from stdin")
+    except Exception as e:
+        logging.debug(f"Manual injection error: {e}")
     try:
         races = await agg.fetch_all(start_dt, end_dt)
     finally:
@@ -1500,6 +1523,9 @@ def parse_args():
     p.add_argument("--insecure-ssl", action="store_true", help="Disable SSL verification")
     p.add_argument("--no-http2", action="store_true", help="Disable HTTP/2")
     p.add_argument("--disable-browser-fetch", action="store_true", help="Disable browser fallback")
+    # Manual content injection options
+    p.add_argument("--manual-kv", nargs="*", help="Preload cache with url=path pairs (HTML/JSON file contents)")
+    p.add_argument("--manual-stdin-url", help="URL to associate with content read from stdin (paste then Ctrl-D)")
     return p.parse_args()
 
 def main():

@@ -516,6 +516,7 @@ class AtTheRacesSource(DataSourceBase):
                         out.extend(fallback)
                 except Exception as e:
                     logging.debug(f"ATR fallback error for {dt.date()}: {e}")
+        logging.info(f"AtTheRaces total races for window: {len(out)}")
         return out
 
     async def _fetch_region(self, url: str, region: str, dt: datetime) -> List[RaceData]:
@@ -680,7 +681,7 @@ class SkySportsSource(DataSourceBase):
             for container in soup.find_all('div', class_='sdc-site-racing-meetings__event'):
                 if rd := await self._parse_race_entry(container):
                     races.append(rd)
-        logging.info(f"SkySportsSource found {len(races)} races.")
+        logging.info(f"SkySports total races for window: {len(races)}")
         return races
 
     async def _parse_race_entry(self, container: Tag) -> Optional[RaceData]:
@@ -771,7 +772,9 @@ class GBGreyhoundSource(DataSourceBase):
 
         tasks = [self._fetch_meeting(m_url) for m_url in sorted(list(meeting_links))]
         results = await asyncio.gather(*tasks)
-        return [race for sublist in results for race in sublist]
+        races = [race for sublist in results for race in sublist]
+        logging.info(f"SportingLife greyhound total races for window: {len(races)} across {len(meeting_links)} meetings")
+        return races
 
     async def _fetch_meeting(self, m_url: str) -> List[RaceData]:
         html = await self.http_client.fetch(m_url)
@@ -857,6 +860,7 @@ class HarnessRacingAustraliaSource(DataSourceBase):
             tasks = [self._parse_race(r_url, dt) for r_url in sorted(list(race_links))]
             results = await asyncio.gather(*tasks)
             out.extend([r for r in results if r])
+        logging.info(f"HarnessRacingAustralia total races for window: {len(out)}")
         return out
 
     async def _parse_race(self, url: str, dt: datetime) -> Optional[RaceData]:
@@ -960,6 +964,7 @@ class StandardbredCanadaSource(DataSourceBase):
             tasks = [self._parse_meeting(m_url, dt) for m_url in sorted(list(meeting_links))]
             results = await asyncio.gather(*tasks)
             out.extend([r for sublist in results for r in sublist])
+        logging.info(f"StandardbredCanada total races for window: {len(out)}")
         return out
 
     async def _parse_meeting(self, url: str, dt: datetime) -> List[RaceData]:
@@ -1044,6 +1049,7 @@ class RacingDataAggregator:
 
     async def fetch_all(self, start: datetime, end: datetime) -> List[RaceData]:
         tasks = [src.fetch_races((start, end)) for src in self.sources]
+        t0 = time.perf_counter()
         results = await asyncio.gather(*tasks, return_exceptions=True)
         races: List[RaceData] = []
         for src, res in zip(self.sources, results):
@@ -1052,11 +1058,18 @@ class RacingDataAggregator:
                 self.per_source_counts[src.name] = 0
             else:
                 self.per_source_counts[src.name] = len(res)
+                logging.info(f"Fetched {len(res)} races from {src.name}")
                 races.extend(res)
+        total_raw = len(races)
+        logging.info(f"Total raw races before merge: {total_raw} from {len(self.sources)} sources; breakdown: {self.per_source_counts}")
         merged = self._dedupe_merge(races)
+        total_merged = len(merged)
+        logging.info(f"After dedupe/merge: {total_merged} races (deduped {total_raw - total_merged})")
         await self._enrich_rs_links(merged)
+        logging.info("Enrichment with Racing & Sports links completed")
         for r in merged:
             r.value_score = self.scorer.calculate_score(r)
+        logging.info(f"Scoring completed for {len(merged)} races in {time.perf_counter() - t0:.2f}s")
         return merged
 
     # PATCHED: Dedup key correctness (avoid over-merge) - use race_time only, rounded to 5m

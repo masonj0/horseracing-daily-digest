@@ -55,15 +55,18 @@ TRACK_TIMEZONES = {
     # USA (examples)
     "finger-lakes": "America/New_York", "fort-erie": "America/Toronto", "presque-isle-downs": "America/New_York",
     "ellis-park": "America/Chicago", "thistledown": "America/New_York", "mountaineer-park": "America/New_York",
+    "mountaineer": "America/New_York",
     "churchill": "America/New_York", "belmont": "America/New_York", "saratoga": "America/New_York",
     "santa-anita": "America/Los_Angeles", "del-mar": "America/Los_Angeles",
     # France
     "la-teste-de-buch": "Europe/Paris", "clairefontaine": "Europe/Paris", "cagnes-sur-mer-midi": "Europe/Paris",
-    "divonne-les-bains": "Europe/Paris", "longchamp": "Europe/Paris",
+    "divonne-les-bains": "Europe/Paris", "longchamp": "Europe/Paris", "saint-malo": "Europe/Paris",
     # Australia - PATCHED: Enhanced AU harness TZs
     "flemington": "Australia/Melbourne", "randwick": "Australia/Sydney", "eagle-farm": "Australia/Brisbane",
     "albion-park": "Australia/Brisbane", "redcliffe": "Australia/Brisbane",
     "menangle": "Australia/Sydney", "gloucester-park": "Australia/Perth",
+    # South Africa
+    "fairview": "Africa/Johannesburg",
     # Other
     "gavea": "America/Sao_Paulo", "sha-tin": "Asia/Hong_Kong", "tokyo": "Asia/Tokyo",
 }
@@ -657,6 +660,91 @@ class AtTheRacesSource(DataSourceBase):
         except Exception:
             return None
 
+# New: Sporting Life Horse API source (global TB)
+class SportingLifeHorseApiSource(DataSourceBase):
+    BASE = "https://www.sportinglife.com/api/horse-racing/race"
+
+    COURSE_TO_COUNTRY = {
+        "gavea": "BR",
+        "mountaineer": "US",
+        "mountaineer park": "US",
+        "fairview": "ZA",
+        "saint-malo": "FR",
+    }
+
+    async def fetch_races(self, date_range: Tuple[datetime, datetime]) -> List[RaceData]:
+        out: List[RaceData] = []
+        for dt in self._days(date_range):
+            # SL API often supports sorting/paging; fetch a reasonable batch
+            url = f"{self.BASE}?limit=200&sort_direction=ASC&sort_field=RACE_TIME"
+            text = await self.http_client.fetch(url)
+            if not text:
+                continue
+            try:
+                payload = json.loads(text)
+            except Exception:
+                logging.debug("SportingLifeHorseApi JSON decode failed")
+                continue
+            for item in payload if isinstance(payload, list) else []:
+                try:
+                    rs = item.get("race_summary", {})
+                    course = (rs.get("course_name") or "").strip()
+                    date_str = rs.get("date") or ""
+                    time_str = rs.get("time") or ""
+                    ride_count = int(rs.get("ride_count") or 0)
+                    if not course or not date_str or not time_str or ride_count <= 0:
+                        continue
+                    # Filter to current day window
+                    try:
+                        d_date = datetime.fromisoformat(date_str).date()
+                        if not (date_range[0].date() <= d_date <= date_range[1].date()):
+                            continue
+                    except Exception:
+                        pass
+                    slug = re.sub(r"\s+", "-", course.lower())
+                    hhmm = time_str.replace(":", "")
+                    race_url = f"https://www.sportinglife.com/racing/racecards/{slug}/{date_str}/{hhmm}"
+                    # Build runners from rides
+                    runners: List[Dict[str, Any]] = []
+                    for ride in item.get("rides", []) or []:
+                        horse = (ride.get("horse") or {}).get("name") or ""
+                        odds = ((ride.get("betting") or {}).get("current_odds") or "").strip()
+                        if horse:
+                            runners.append({"name": horse, "odds_str": odds})
+                    fav_sorted = sorted(runners, key=lambda x: convert_odds_to_fractional(x.get("odds_str", ""))) if runners else []
+                    # Country and timezone
+                    course_key = course.lower()
+                    country = self.COURSE_TO_COUNTRY.get(course_key) or "GB"
+                    tz_name = self._track_tz(course, country)
+                    local_tz = ZoneInfo(tz_name)
+                    local_dt = datetime.combine(datetime.fromisoformat(date_str).date(), datetime.strptime(time_str, "%H:%M").time()).replace(tzinfo=local_tz)
+                    out.append(
+                        RaceData(
+                            id=self._race_id(course, date_str, time_str),
+                            course=course,
+                            race_time=time_str,
+                            utc_datetime=local_dt.astimezone(ZoneInfo("UTC")),
+                            local_time=local_dt.strftime("%H:%M"),
+                            timezone_name=tz_name,
+                            field_size=ride_count,
+                            country=country,
+                            discipline="thoroughbred",
+                            race_number=None,
+                            grade=None,
+                            distance=rs.get("distance"),
+                            surface=(rs.get("course_surface") or {}).get("surface"),
+                            favorite=fav_sorted[0] if fav_sorted else None,
+                            second_favorite=fav_sorted[1] if len(fav_sorted) > 1 else None,
+                            all_runners=runners,
+                            race_url=race_url,
+                            data_sources={"course": "SL API", "runners": "SL API", "odds": "SL API"},
+                        )
+                    )
+                except Exception:
+                    continue
+        logging.info(f"SportingLife Horse API total races for window: {len(out)}")
+        return out
+
 class SkySportsSource(DataSourceBase):
     BASE = "https://www.skysports.com/racing/racecards"
 
@@ -1037,6 +1125,7 @@ class RacingDataAggregator:
         self.scorer = ValueScorer(cfg.get("thresholds", {}))
         self.sources = [
             AtTheRacesSource(self.http),
+            SportingLifeHorseApiSource(self.http),
             SkySportsSource(self.http),
             GBGreyhoundSource(self.http),
             HarnessRacingAustraliaSource(self.http),

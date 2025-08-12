@@ -23,6 +23,7 @@ import random
 import contextlib
 import shutil
 import subprocess
+import sys
 import certifi
 from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta
@@ -120,6 +121,33 @@ def _extract_meta_refresh_target(html: str) -> Optional[str]:
     m = re.search(r'<meta[^>]*http-equiv=["\']?refresh["\']?[^>]*content=["\']?[^>]*url=([^"\' >]+)', html, re.I)
     return m.group(1).strip() if m else None
 
+def _get_manual_input(url: str) -> Optional[str]:
+    """Prompts the user to manually fetch and paste HTML for a given URL."""
+    print("\n" + "=" * 80)
+    print(f"AUTOMATED FETCH FAILED FOR: {url}")
+    print("Please open this URL in your browser, 'View Page Source', copy the HTML,")
+    print("and paste it below. Type 'EOF' on a new line and press Enter when done.")
+    print("=" * 80)
+
+    lines = []
+    while True:
+        try:
+            line = sys.stdin.readline()
+            if line.strip().upper() == "EOF":
+                break
+            lines.append(line)
+        except KeyboardInterrupt:
+            print("\nManual input cancelled.")
+            return None
+
+    content = "".join(lines)
+    if content.strip():
+        print("✅ Received manual input. Continuing...")
+        return content
+    else:
+        print("❌ No manual input received.")
+        return None
+
 @dataclass
 class RaceData:
     id: str; course: str; race_time: str; utc_datetime: datetime; local_time: str
@@ -174,15 +202,25 @@ class CacheManager:
         await self._save_metadata()
 
 class AsyncHttpClient:
-    def __init__(self, max_concurrent: int, cache_manager: Optional[CacheManager], verify_ssl: bool = True, http2: bool = True):
-        self.semaphore = asyncio.Semaphore(max_concurrent); self.cache_manager = cache_manager
+    def __init__(self, max_concurrent: int, cache_manager: Optional[CacheManager], verify_ssl: bool = True, http2: bool = True, interactive_fallback: bool = False):
+        self.semaphore = asyncio.Semaphore(max_concurrent)
+        self.cache_manager = cache_manager
         self.limits = httpx.Limits(max_connections=40, max_keepalive_connections=10)
-        self.retry_count = 0; self.blocked_count = 0; self.success_count = 0
-        self.browser_success = 0; self.browser_attempts = 0; self.fallback_success = 0
+        self.retry_count = 0
+        self.blocked_count = 0
+        self.success_count = 0
+        self.browser_success = 0
+        self.browser_attempts = 0
+        self.fallback_success = 0
+        self.interactive_fallback = interactive_fallback
         self.ua_pool = ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
                         "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"]
-        self._ua_idx = 0; self._client: Optional[httpx.AsyncClient] = None; self.verify_ssl = verify_ssl
-        self.http2 = http2; self._host_last: Dict[str, float] = {}; self._throttle_lock = asyncio.Lock()
+        self._ua_idx = 0
+        self._client: Optional[httpx.AsyncClient] = None
+        self.verify_ssl = verify_ssl
+        self.http2 = http2
+        self._host_last: Dict[str, float] = {}
+        self._throttle_lock = asyncio.Lock()
         self.min_interval_per_host = 0.25
     def _ua(self) -> str: ua = self.ua_pool[self._ua_idx % len(self.ua_pool)]; self._ua_idx += 1; return ua
     async def _client_get(self) -> httpx.AsyncClient:
@@ -222,7 +260,19 @@ class AsyncHttpClient:
                     if self.cache_manager: await self.cache_manager.set(url, content, headers={"cache-control": "max-age=600"})
                     return content
 
-            self.blocked_count += 1; return None
+            # Interactive fallback
+            if self.interactive_fallback:
+                if content := await asyncio.to_thread(_get_manual_input, url):
+                    self.success_count += 1
+                    # We can't know the headers, so cache for a short time
+                    if self.cache_manager:
+                        await self.cache_manager.set(
+                            url, content, headers={"cache-control": "max-age=300"}
+                        )
+                    return content
+
+            self.blocked_count += 1
+            return None
 
     async def _fetch_http(self, url: str) -> Optional[str]:
         await self._throttle(url); headers = {"User-Agent": self._ua()}
@@ -615,7 +665,13 @@ class RacingDataAggregator:
     def __init__(self, cfg: Dict[str, Any]):
         self.cfg = cfg
         self.cache = None if cfg.get("no_cache") else CacheManager(Path(cfg.get("cache_dir", DEFAULT_CACHE_DIR)))
-        self.http = AsyncHttpClient(cfg.get("concurrency", 12), self.cache, not cfg.get("insecure_ssl", False), not cfg.get("no_http2", False))
+        self.http = AsyncHttpClient(
+            cfg.get("concurrency", 12),
+            self.cache,
+            not cfg.get("insecure_ssl", False),
+            not cfg.get("no_http2", False),
+            cfg.get("interactive_fallback", False),
+        )
         self.scorer = ValueScorer(cfg.get("thresholds", {}))
         self.sources = [AtTheRacesSource(self.http), SkySportsSource(self.http), GBGreyhoundSource(self.http),
                         HarnessRacingAustraliaSource(self.http), StandardbredCanadaSource(self.http)]
@@ -801,7 +857,7 @@ async def _amain(args):
     thresholds = {"min_field_size": args.min_field_size, "max_field_size": args.max_field_size, "min_fav_fractional": args.min_fav_fractional,
                   "min_second_fav_fractional": args.min_second_fav_fractional, "min_odds_ratio": args.min_odds_ratio}
     cfg = {"cache_dir": args.cache_dir, "concurrency": args.concurrency, "thresholds": thresholds, "formats": args.formats,
-           "no_cache": args.no_cache, "insecure_ssl": args.insecure_ssl, "no_http2": args.no_http2}
+           "no_cache": args.no_cache, "insecure_ssl": args.insecure_ssl, "no_http2": args.no_http2, "interactive_fallback": args.interactive_fallback}
     t0 = time.perf_counter(); agg = RacingDataAggregator(cfg)
     try: races = await agg.fetch_all(start_dt, end_dt)
     finally: await agg.aclose()
@@ -832,6 +888,7 @@ def parse_args():
     p.add_argument("--insecure-ssl", action="store_true", help="Disable SSL verification")
     p.add_argument("--no-http2", action="store_true", help="Disable HTTP/2")
     p.add_argument("--disable-browser-fetch", action="store_true", help="Disable browser fallback")
+    p.add_argument("--interactive-fallback", action="store_true", help="Enable manual input prompt for failed requests")
     return p.parse_args()
 
 def main():
